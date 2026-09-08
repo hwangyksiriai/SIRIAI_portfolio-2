@@ -105,20 +105,22 @@ function continuationsFor(categories, id) {
   return categories.filter((c) => re.test(c.id) && (c.clips || []).length > 0);
 }
 
-/* A couple of clips to preview a category with in the search view,
-   Apple-Music-"인기 신곡"-style, regardless of whether it uses regions. */
-function previewClipsOf(cat, n) {
-  const clips = Array.isArray(cat.clips) && cat.clips.length
-    ? cat.clips
-    : (cat.regions || []).flatMap((r) => r.clips || []);
-  return clips.slice(0, n);
-}
-
 function CategoryFeed({ cat, categories }) {
   const hasRegions = Array.isArray(cat.regions) && cat.regions.length > 0;
-  const clips = hasRegions
-    ? cat.regions.flatMap((r) => r.clips.map((src) => ({ src, badge: r.label })))
-    : (cat.clips || []);
+  const domesticRegion = hasRegions && cat.regions.find((r) => r.key === 'domestic');
+  const abroadRegion = hasRegions && cat.regions.find((r) => r.key === 'abroad');
+  // Domestic/abroad categories (Beauty, Fashion, Travel...) push overseas
+  // clips to the very end, past the continuation pages, with a badge; every
+  // other region shape (e.g. Artist Promotion's country regions) keeps its
+  // original order and per-region badges.
+  const clips = domesticRegion && abroadRegion
+    ? domesticRegion.clips
+    : hasRegions
+      ? cat.regions.flatMap((r) => r.clips.map((src) => ({ src, badge: r.label })))
+      : (cat.clips || []);
+  const abroadClips = domesticRegion && abroadRegion
+    ? abroadRegion.clips.map((src) => ({ src, badge: '해외' }))
+    : [];
   const continuations = continuationsFor(categories, cat.id);
 
   return (
@@ -127,30 +129,7 @@ function CategoryFeed({ cat, categories }) {
       {continuations.map((c) => (
         <ClipGrid key={c.id} layout={c.layout} clips={c.clips} />
       ))}
-    </div>
-  );
-}
-
-function ProfileCard({ config }) {
-  return (
-    <div className="ig-profile">
-      <div className={'ig-avatar' + (config.profile?.avatarUrl ? '' : ' ig-avatar-default')}>
-        <img src={config.profile?.avatarUrl || BRAND_SYMBOL} alt="Siriai" />
-      </div>
-      <div className="ig-profile-info">
-        <h1 className="ig-username">siriai.official</h1>
-        <div className="ig-stats">
-          <span><strong>128</strong> 팔로워</span>
-          <span><strong>42</strong> 팔로우</span>
-        </div>
-        <p className="ig-bio-name">SIRIAI — Private Influencer Curation</p>
-        <p className="ig-bio">
-          SEOUL | BRAND CURATION 🎬 ✦<br className="brk" />
-          📩 hello@siriai.co.kr<br className="brk" />
-          새로움을 설계하는 프라이빗 인플루언서 풀
-        </p>
-        <a className="ig-bio-link" href="https://siriai.co.kr" target="_blank" rel="noopener noreferrer">siriai.co.kr</a>
-      </div>
+      {abroadClips.length > 0 && <ClipGrid layout={cat.layout} clips={abroadClips} />}
     </div>
   );
 }
@@ -158,12 +137,8 @@ function ProfileCard({ config }) {
 export default function PortfolioView({ config }) {
   const categories = config.categories;
   const navCategories = categories.filter((cat) => !cat.hideFromNav);
-  const [view, setView] = useState('home'); // 'home' | 'search' | a category id
+  const [view, setView] = useState('home'); // 'home' | a category id
   const activeCategory = categories.find((cat) => cat.id === view) || null;
-  const [query, setQuery] = useState('');
-  const searchResults = navCategories.filter((cat) =>
-    cat.navLabel.toLowerCase().includes(query.trim().toLowerCase())
-  );
   const mainRef = useRef(null);
 
   function selectView(v) {
@@ -175,15 +150,11 @@ export default function PortfolioView({ config }) {
     <div className="app-shell">
       <aside className="app-sidebar">
         <div className="app-sidebar-logo">
-          <span className="app-sidebar-logo-mark" />
+          <span className="app-sidebar-logo-mark"><img src={BRAND_SYMBOL} alt="" /></span>
           SIRIAI
         </div>
 
         <nav className="app-nav-section">
-          <button type="button" className={'app-nav-item' + (view === 'search' ? ' active' : '')} onClick={() => selectView('search')}>
-            <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-            검색
-          </button>
           <button type="button" className={'app-nav-item' + (view === 'home' ? ' active' : '')} onClick={() => selectView('home')}>
             <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6"><path d="M4 11.5 12 4l8 7.5" /><path d="M6 10v10h12V10" /></svg>
             홈
@@ -201,65 +172,27 @@ export default function PortfolioView({ config }) {
           ))}
         </nav>
 
-        <a className="app-sidebar-cta" href="https://siriai-business.vercel.app/#contact" target="_blank" rel="noopener noreferrer">
-          <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.8"><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" /></svg>
-          Contact
-        </a>
+        <div className="app-sidebar-bottom">
+          <a className="app-sidebar-link" href="https://siriai.co.kr" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6"><rect x="3" y="3" width="18" height="18" rx="4" /><path d="M9 8l6 4-6 4V8Z" /></svg>
+            홈으로 이동
+            <span className="app-sidebar-link-arrow">↗</span>
+          </a>
+          <a className="app-sidebar-cta" href="https://siriai-business.vercel.app/#contact" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.8"><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" /></svg>
+            Contact
+          </a>
+        </div>
       </aside>
 
       <main className="app-main" ref={mainRef}>
         {activeCategory ? (
           <div className="app-main-inner">
-            <div className="ig-topbar">
-              <span />
-              <div className="ig-topbar-actions">
-                <a className="ig-btn-link" href="https://siriai.co.kr" target="_blank" rel="noopener noreferrer">홈으로 이동</a>
-              </div>
+            <div className="cat-header">
+              <h1 className="cat-title">{activeCategory.navLabel}</h1>
             </div>
 
             <CategoryFeed cat={activeCategory} categories={categories} key={activeCategory.id} />
-          </div>
-        ) : view === 'search' ? (
-          <div className="app-main-inner" key="search">
-            <div className="ig-topbar">
-              <span />
-              <div className="ig-topbar-actions">
-                <a className="ig-btn-link" href="https://siriai.co.kr" target="_blank" rel="noopener noreferrer">홈으로 이동</a>
-              </div>
-            </div>
-
-            <ProfileCard config={config} />
-
-            <div className="search-box">
-              <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-              <input
-                type="text"
-                className="search-input"
-                placeholder="캠페인 카테고리 검색"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                autoFocus
-              />
-            </div>
-
-            <h2 className="search-section-title">
-              {query.trim() ? `"${query}" 검색 결과` : '인기 캠페인'}
-            </h2>
-
-            {searchResults.length > 0 ? (
-              <div className="search-results">
-                {searchResults.map((cat) => (
-                  <button type="button" className="search-result" key={cat.id} onClick={() => selectView(cat.id)}>
-                    <div className="search-result-thumbs">
-                      {previewClipsOf(cat, 2).map((src, i) => <Clip key={i} src={src} />)}
-                    </div>
-                    <span className="search-result-label">{cat.navLabel}</span>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <p className="search-empty">&ldquo;{query}&rdquo;에 대한 검색 결과가 없습니다.</p>
-            )}
           </div>
         ) : (
           <div className="home-hero" key="home">
@@ -276,74 +209,8 @@ export default function PortfolioView({ config }) {
         )}
       </main>
 
-      <LeadForm categoryLabel={activeCategory?.navLabel} />
+      <div className="floating-bar">감각적인 비주얼을 만나보세요</div>
     </div>
-  );
-}
-
-function LeadForm({ categoryLabel }) {
-  const [brand, setBrand] = useState('');
-  const [phone, setPhone] = useState('');
-  const [status, setStatus] = useState('idle'); // idle | sending | done | error
-
-  async function onSubmit(e) {
-    e.preventDefault();
-    if (!brand.trim() || !phone.trim()) return;
-    setStatus('sending');
-    try {
-      const res = await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brand, phone, category: categoryLabel || null }),
-      });
-      if (!res.ok) throw new Error('failed');
-      setStatus('done');
-      setBrand('');
-      setPhone('');
-    } catch {
-      setStatus('error');
-    }
-  }
-
-  if (status === 'done') {
-    return (
-      <div className="floating-bar floating-bar-form">
-        <div className="lead-done">
-          <span>문의가 접수됐어요. 빠르게 연락드릴게요! 🎉</span>
-          <button type="button" className="lead-again" onClick={() => setStatus('idle')}>다시 문의하기</button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <form className="floating-bar floating-bar-form" onSubmit={onSubmit}>
-      <div className="lead-title">
-        {categoryLabel ? `${categoryLabel} 릴스 제작 문의` : 'SIRIAI 캠페인 제작 문의'} <span className="lead-bolt">⚡</span>
-      </div>
-      <div className="lead-fields">
-        <input
-          type="text"
-          className="lead-input"
-          placeholder="브랜드명"
-          value={brand}
-          onChange={(e) => setBrand(e.target.value)}
-          required
-        />
-        <input
-          type="tel"
-          className="lead-input"
-          placeholder="010-"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          required
-        />
-        <button type="submit" className="lead-submit" disabled={status === 'sending'}>
-          {status === 'sending' ? '전송 중...' : '완료'}
-        </button>
-      </div>
-      {status === 'error' && <p className="lead-error">전송에 실패했어요. 다시 시도해주세요.</p>}
-    </form>
   );
 }
 

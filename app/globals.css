@@ -8,9 +8,10 @@
   --nav-bg: rgba(255,255,255,.72);
   --accent-soft: rgba(67,97,238,.14);
   --scrim: rgba(255,255,255,.72);
-  --display: "Inter Tight", "Noto Sans KR", Helvetica, Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-  --body: "Inter Tight", "Noto Sans KR", Helvetica, Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-  --mono: "Inter Tight", "Noto Sans KR", Helvetica, Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --shell-bg: #ebeae7;
+  --display: -apple-system, "SF Pro Display", "Inter Tight", "Noto Sans KR", Helvetica, Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --body: -apple-system, "SF Pro Text", "Inter Tight", "Noto Sans KR", Helvetica, Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --mono: -apple-system, "SF Pro Text", "Inter Tight", "Noto Sans KR", Helvetica, Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   --jp: "Noto Sans JP", sans-serif;
   --content-max: 2400px;
   --pad-x: 72px;
@@ -22,8 +23,8 @@
 html{ scroll-behavior:smooth; }
 html,body{ margin:0; padding:0; }
 body{
-  background:var(--bg); color:var(--ink); font-family:var(--body); overflow-x:hidden;
-  word-break:keep-all; overflow-wrap:break-word;
+  background:var(--shell-bg); color:var(--ink); font-family:var(--body); overflow-x:hidden;
+  word-break:keep-all; overflow-wrap:break-word; letter-spacing:-.01em;
 }
 
 /* Desktop-only manual line breaks in Korean copy; hidden so word-break:keep-all
@@ -98,24 +99,30 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
 
 /* App shell: Apple-Music-homage left sidebar (search/home/campaigns + a
    pinned Contact pill where Apple Music's "로그인" sits) + scrollable main
-   feed, with a glass floating bar pinned across the bottom. */
-.app-shell{ display:flex; min-height:100vh; align-items:flex-start; }
+   feed, with a glass floating bar pinned across the bottom. Sidebar and
+   main are separate rounded cards floating on a grey shell background,
+   matching Apple Music's own layout. */
+.app-shell{ display:flex; min-height:100vh; align-items:flex-start; gap:10px; background:var(--shell-bg); padding:10px; }
 .app-sidebar{
-  width:260px; flex:0 0 auto; height:100vh; position:sticky; top:0;
+  width:260px; flex:0 0 auto; height:calc(100vh - 20px); position:sticky; top:10px;
   display:flex; flex-direction:column; overflow-y:auto;
-  padding:24px 16px; border-right:1px solid var(--line);
+  padding:20px 14px; background:var(--bg); border-radius:16px;
 }
 .app-sidebar-logo{
   display:flex; align-items:center; gap:9px;
-  font-family:var(--display); font-weight:700; font-size:19px; letter-spacing:-.01em; color:var(--ink);
+  font-family:var(--display); font-weight:700; font-size:19px; letter-spacing:-.02em; color:var(--ink);
   padding:0 10px; margin-bottom:28px;
 }
-.app-sidebar-logo-mark{ width:20px; height:20px; border-radius:6px; background:var(--accent); flex:0 0 auto; }
+.app-sidebar-logo-mark{
+  width:22px; height:22px; border-radius:7px; background:var(--ink); flex:0 0 auto;
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+}
+.app-sidebar-logo-mark img{ width:70%; height:70%; object-fit:contain; }
 .app-nav-section{ display:flex; flex-direction:column; gap:2px; }
 .app-nav-item{
   display:flex; align-items:center; gap:12px; width:100%; text-align:left;
-  padding:10px 10px; border-radius:8px; background:none; border:none; cursor:pointer;
-  font-family:var(--body); font-size:14.5px; font-weight:500; color:var(--ink);
+  padding:9px 10px; border-radius:10px; background:none; border:none; cursor:pointer;
+  font-family:var(--body); font-size:14px; font-weight:500; letter-spacing:-.01em; color:var(--ink);
   transition:background .15s ease, color .15s ease;
 }
 .app-nav-item svg{ width:19px; height:19px; stroke:currentColor; stroke-width:1.6; flex:0 0 auto; }
@@ -125,8 +132,19 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
 .app-nav-item.active{ background:var(--accent-soft); color:var(--accent); font-weight:700; }
 .app-nav-item.active svg{ stroke:var(--accent); }
 
+.app-sidebar-bottom{ margin-top:auto; position:sticky; bottom:12px; display:flex; flex-direction:column; gap:10px; }
+
+.app-sidebar-link{
+  display:flex; align-items:center; gap:8px;
+  padding:11px 14px; border-radius:12px; border:1px solid var(--line); background:var(--card);
+  font-family:var(--body); font-weight:600; font-size:13px; color:var(--muted); text-decoration:none;
+  transition:color .15s ease, border-color .15s ease;
+}
+.app-sidebar-link svg{ width:16px; height:16px; stroke:currentColor; flex:0 0 auto; }
+.app-sidebar-link-arrow{ margin-left:auto; font-size:13px; }
+.app-sidebar-link:hover{ color:var(--ink); border-color:var(--accent); }
+
 .app-sidebar-cta{
-  margin-top:auto; position:sticky; bottom:12px;
   display:flex; align-items:center; justify-content:center; gap:8px;
   padding:12px 16px; border-radius:999px; background:var(--accent); color:#fff;
   font-family:var(--body); font-weight:700; font-size:13.5px; text-decoration:none;
@@ -135,60 +153,27 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
 .app-sidebar-cta svg{ width:16px; height:16px; stroke:#fff; }
 .app-sidebar-cta:hover{ filter:brightness(1.08); }
 
-.app-main{ flex:1; min-width:0; height:100vh; overflow-y:auto; }
+.app-main{ flex:1; min-width:0; height:calc(100vh - 20px); overflow-y:auto; background:var(--bg); border-radius:16px; }
 .app-main-inner{ max-width:1400px; margin:0 auto; padding:32px 48px 130px; }
 @media (max-width:900px){
   .app-shell{ flex-direction:column; }
-  .app-sidebar{ width:100%; height:auto; position:relative; border-right:none; border-bottom:1px solid var(--line); padding:16px; }
-  .app-sidebar-cta{ position:relative; bottom:auto; margin-top:16px; }
+  .app-sidebar{ width:100%; height:auto; position:relative; padding:16px; }
+  .app-sidebar-bottom{ position:relative; bottom:auto; margin-top:16px; }
   .app-main{ height:auto; overflow-y:visible; }
   .app-main-inner{ padding:24px 20px 100px; }
 }
 
-/* Glass floating bar, echoing Apple Music's rounded mini-player pill —
-   now doubling as a quick lead-capture form. */
+/* Glass floating bar, echoing Apple Music's rounded mini-player pill. */
 .floating-bar{
-  position:fixed; left:284px; right:20px; bottom:20px; z-index:40;
-  border-radius:18px;
-  background:rgba(23,19,16,.82); backdrop-filter:blur(18px) saturate(1.6); -webkit-backdrop-filter:blur(18px) saturate(1.6);
-  border:1px solid rgba(255,255,255,.08);
-  box-shadow:0 16px 40px -16px rgba(0,0,0,.45);
+  position:fixed; left:300px; right:30px; bottom:30px; z-index:40;
+  display:flex; align-items:center; justify-content:center;
+  padding:15px 24px; text-align:center; border-radius:18px;
+  font-family:var(--display); font-weight:600; font-size:14px; color:var(--ink);
+  background:rgba(255,255,255,.6); backdrop-filter:blur(18px) saturate(1.6); -webkit-backdrop-filter:blur(18px) saturate(1.6);
+  border:1px solid rgba(23,19,16,.08);
+  box-shadow:0 12px 32px -12px rgba(0,0,0,.18);
 }
 @media (max-width:900px){ .floating-bar{ left:20px; } }
-
-.floating-bar-form{ padding:16px 20px; }
-.lead-title{
-  display:flex; align-items:center; gap:6px;
-  font-family:var(--display); font-weight:700; font-size:14px; color:#fff; margin-bottom:12px;
-}
-.lead-bolt{ font-size:13px; }
-.lead-fields{ display:flex; gap:10px; }
-.lead-input{
-  flex:1; min-width:0; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.08);
-  border-radius:10px; padding:11px 14px; font-family:var(--body); font-size:14px; color:#fff; outline:none;
-  transition:border-color .15s ease, background .15s ease;
-}
-.lead-input::placeholder{ color:rgba(255,255,255,.45); }
-.lead-input:focus{ border-color:rgba(255,255,255,.4); background:rgba(255,255,255,.13); }
-.lead-submit{
-  flex:0 0 auto; padding:11px 26px; border:none; border-radius:10px; cursor:pointer;
-  font-family:var(--body); font-weight:700; font-size:14px; color:#fff;
-  background:linear-gradient(135deg,#ff5ea8,#ff8a3d);
-  transition:filter .15s ease, opacity .15s ease;
-}
-.lead-submit:hover{ filter:brightness(1.06); }
-.lead-submit:disabled{ opacity:.6; cursor:default; }
-.lead-error{ margin:10px 0 0; font-size:12.5px; color:#ff9f9f; }
-.lead-done{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
-.lead-done span{ font-family:var(--body); font-size:14px; font-weight:600; color:#fff; }
-.lead-again{
-  flex:0 0 auto; border:1px solid rgba(255,255,255,.25); background:none; color:#fff;
-  padding:8px 16px; border-radius:999px; font-size:12.5px; font-weight:600; cursor:pointer;
-}
-@media (max-width:640px){
-  .lead-fields{ flex-wrap:wrap; }
-  .lead-submit{ width:100%; }
-}
 
 /* Apple-Music-homage Home screen: full-bleed black hero, slides in from
    the right whenever "홈" is selected. */
@@ -201,7 +186,7 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
 @keyframes homeHeroIn{ from{ transform:translateX(90px); opacity:0; } to{ transform:translateX(0); opacity:1; } }
 .home-hero-inner{ max-width:640px; }
 .home-hero-brand{ font-family:var(--display); font-weight:700; font-size:14px; letter-spacing:.12em; text-transform:uppercase; color:rgba(255,255,255,.65); margin-bottom:20px; }
-.home-hero-title{ font-family:var(--display); font-weight:700; font-size:clamp(30px,4vw,50px); line-height:1.3; color:#fff; margin:0 0 40px; }
+.home-hero-title{ font-family:var(--display); font-weight:700; letter-spacing:-.02em; font-size:clamp(30px,4vw,50px); line-height:1.2; color:#fff; margin:0 0 40px; }
 .home-hero-symbol{ width:120px; height:120px; margin:0 auto 36px; display:block; filter:drop-shadow(0 24px 44px rgba(0,0,0,.5)); }
 .home-hero-sub{ font-size:15px; line-height:1.75; color:rgba(255,255,255,.6); margin:0; }
 @media (max-width:720px){
@@ -212,66 +197,8 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
 
 .cat-feed{ margin-top:4px; }
 
-.search-box{
-  display:flex; align-items:center; gap:10px; margin-top:40px;
-  padding:13px 16px; border:1px solid var(--line); border-radius:12px; background:var(--card);
-}
-.search-box svg{ width:18px; height:18px; stroke:var(--muted); flex:0 0 auto; }
-.search-input{ flex:1; border:none; background:none; outline:none; font-family:var(--body); font-size:15px; color:var(--ink); }
-.search-input::placeholder{ color:var(--muted); }
-
-.search-section-title{ margin-top:36px; font-family:var(--display); font-weight:700; font-size:18px; color:var(--ink); }
-
-.search-results{ margin-top:16px; display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:16px; }
-.search-result{
-  display:flex; flex-direction:column; gap:10px; padding:12px;
-  border:1px solid var(--line); border-radius:14px; background:none; cursor:pointer; text-align:left;
-  transition:border-color .15s ease, background .15s ease;
-}
-.search-result:hover{ border-color:var(--accent); background:var(--accent-soft); }
-.search-result-thumbs{ display:grid; grid-template-columns:repeat(2,1fr); gap:6px; }
-.search-result-thumbs .clip{ aspect-ratio:9/16; border-radius:8px; }
-.search-result-label{ font-size:13.5px; font-weight:600; color:var(--ink); }
-.search-empty{ margin-top:16px; color:var(--muted); font-size:14px; }
-
-.ig-topbar{
-  display:flex; align-items:center; justify-content:space-between; gap:16px;
-  padding-bottom:28px; margin-bottom:44px; border-bottom:1px solid var(--line);
-}
-.ig-topbar-actions{ display:flex; align-items:center; gap:20px; }
-.ig-btn-fill{
-  font-family:var(--body); font-weight:600; font-size:14px; color:#fff; background:var(--accent);
-  padding:9px 20px; border-radius:8px; text-decoration:none; transition:filter .15s ease;
-}
-.ig-btn-fill:hover{ filter:brightness(1.08); }
-.ig-btn-link{ font-family:var(--body); font-weight:600; font-size:14px; color:var(--ink); text-decoration:none; }
-.ig-btn-link:hover{ color:var(--accent); }
-@media (max-width:720px){
-  .ig-topbar{ padding-bottom:20px; margin-bottom:32px; }
-}
-
-.ig-profile{ display:flex; align-items:center; gap:56px; flex-wrap:wrap; }
-.ig-avatar{
-  flex:0 0 auto; width:150px; height:150px; border-radius:50%; overflow:hidden;
-  background:var(--ink); display:flex; align-items:center; justify-content:center;
-  border:1px solid var(--line);
-}
-.ig-avatar img{ width:100%; height:100%; object-fit:cover; }
-.ig-avatar-default img{ width:64%; height:64%; object-fit:contain; }
-.ig-profile-info{ flex:1 1 320px; min-width:0; }
-.ig-username{ font-family:var(--display); font-weight:600; font-size:24px; letter-spacing:0; margin:0 0 18px; color:var(--ink); }
-.ig-stats{ display:flex; gap:36px; margin-bottom:16px; font-size:15px; color:var(--ink); }
-.ig-stats strong{ font-weight:700; }
-.ig-bio-name{ font-weight:700; font-size:14px; margin:0 0 4px; color:var(--ink); }
-.ig-bio{ font-size:14px; line-height:1.6; color:var(--ink); margin:0 0 4px; }
-.ig-bio-link{ font-size:14px; font-weight:600; color:#3a6ea5; text-decoration:none; }
-.ig-bio-link:hover{ text-decoration:underline; }
-@media (max-width:720px){
-  .ig-profile{ gap:24px; }
-  .ig-avatar{ width:96px; height:96px; }
-  .ig-username{ font-size:19px; margin-bottom:12px; }
-  .ig-stats{ gap:22px; font-size:13.5px; margin-bottom:12px; }
-}
+.cat-header{ padding-bottom:24px; margin-bottom:36px; border-bottom:1px solid var(--line); }
+.cat-title{ font-family:var(--display); font-weight:700; letter-spacing:-.02em; font-size:30px; color:var(--ink); margin:0; }
 
 .sr-only{
   position:absolute; width:1px; height:1px; padding:0; margin:-1px;
