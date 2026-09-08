@@ -145,66 +145,8 @@ function CategorySection({ cat }) {
 }
 
 export default function PortfolioView({ config }) {
-  const deckRef = useRef(null);
-  const pageRefs = useRef([]);
-
   const categories = config.categories;
   const navCategories = categories.filter((cat) => !cat.hideFromNav);
-  const peekClips = navCategories
-    .map((cat) => cat.clips?.[0] || cat.regions?.find((r) => r.clips?.length)?.clips[0])
-    .filter(Boolean)
-    .slice(0, 4);
-
-  function collectPages() {
-    if (!deckRef.current) return [];
-    return Array.from(deckRef.current.querySelectorAll('.page'));
-  }
-
-  function currentIndex() {
-    const pages = collectPages();
-    const y = deckRef.current.scrollTop;
-    let idx = 0;
-    let best = Infinity;
-    pages.forEach((p, i) => {
-      const d = Math.abs(p.offsetTop - y);
-      if (d < best) { best = d; idx = i; }
-    });
-    return idx;
-  }
-
-  useEffect(() => {
-    const deck = deckRef.current;
-    if (!deck) return;
-
-    function onKeydown(e) {
-      if (!['ArrowDown', 'ArrowUp'].includes(e.key)) return;
-      e.preventDefault();
-      const pages = collectPages();
-      const i = currentIndex();
-      const next = e.key === 'ArrowDown' ? Math.min(i + 1, pages.length - 1) : Math.max(i - 1, 0);
-      pages[next].scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    let wheelLocked = false;
-    function onWheel(e) {
-      e.preventDefault();
-      if (wheelLocked) return;
-      const pages = collectPages();
-      const i = currentIndex();
-      const next = e.deltaY > 0 ? Math.min(i + 1, pages.length - 1) : Math.max(i - 1, 0);
-      if (next === i) return;
-      wheelLocked = true;
-      pages[next].scrollIntoView({ behavior: 'smooth', block: 'start' });
-      setTimeout(() => { wheelLocked = false; }, 700);
-    }
-
-    deck.addEventListener('wheel', onWheel, { passive: false });
-    window.addEventListener('keydown', onKeydown);
-    return () => {
-      deck.removeEventListener('wheel', onWheel);
-      window.removeEventListener('keydown', onKeydown);
-    };
-  }, []);
 
   function goToCategory(id) {
     const target = document.getElementById(id);
@@ -213,7 +155,7 @@ export default function PortfolioView({ config }) {
 
   return (
     <>
-      <div className="deck" id="deck" ref={deckRef}>
+      <div className="deck" id="deck">
         {/* 01 PROFILE (Instagram-homage hero) */}
         <section className="page ig-page">
           <div className="ig-topbar">
@@ -258,12 +200,6 @@ export default function PortfolioView({ config }) {
           </div>
 
           <ContentTypeTabs className="cat-tabs-spaced" />
-
-          {peekClips.length > 0 && (
-            <div className="ig-peek">
-              {peekClips.map((src, i) => <Clip key={i} src={src} />)}
-            </div>
-          )}
         </section>
 
         {categories.map((cat) => (
