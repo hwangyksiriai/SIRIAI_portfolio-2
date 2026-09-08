@@ -260,11 +260,9 @@ function CategorySection({ cat, idx }) {
 export default function PortfolioView({ config }) {
   const deckRef = useRef(null);
   const pageRefs = useRef([]);
-  const [pageLabel, setPageLabel] = useState('01');
 
   const categories = config.categories;
   const navCategories = categories.filter((cat) => !cat.hideFromNav);
-  const totalPages = 1 + categories.length; // segments + categories
 
   function collectPages() {
     if (!deckRef.current) return [];
@@ -286,12 +284,6 @@ export default function PortfolioView({ config }) {
   useEffect(() => {
     const deck = deckRef.current;
     if (!deck) return;
-
-    function update() {
-      const pages = collectPages();
-      const i = currentIndex();
-      setPageLabel(String(i + 1).padStart(2, '0'));
-    }
 
     function onKeydown(e) {
       if (!['ArrowDown', 'ArrowUp'].includes(e.key)) return;
@@ -315,12 +307,9 @@ export default function PortfolioView({ config }) {
       setTimeout(() => { wheelLocked = false; }, 700);
     }
 
-    deck.addEventListener('scroll', update, { passive: true });
     deck.addEventListener('wheel', onWheel, { passive: false });
     window.addEventListener('keydown', onKeydown);
-    update();
     return () => {
-      deck.removeEventListener('scroll', update);
       deck.removeEventListener('wheel', onWheel);
       window.removeEventListener('keydown', onKeydown);
     };
@@ -378,13 +367,6 @@ export default function PortfolioView({ config }) {
           <CategorySection cat={cat} idx={1 + i} key={cat.id} />
         ))}
       </div>
-
-      <div className="hud">
-        <div className="hud-pill">{pageLabel} / {totalPages}</div>
-        <div className="hud-pill">↑ ↓ ARROW KEYS</div>
-      </div>
-
-      <a className="contact-fab" href="https://siriai-business.vercel.app/#contact" target="_blank" rel="noopener noreferrer">Contact <span className="arrow">↗</span></a>
     </>
   );
 }
