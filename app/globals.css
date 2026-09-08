@@ -196,6 +196,11 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
 }
 
 .cat-feed{ margin-top:4px; }
+.cat-feed-subhead{
+  font-family:var(--display); font-weight:700; letter-spacing:-.01em; font-size:16px; color:var(--ink);
+  margin:0 0 16px;
+}
+.cat-feed-subhead:not(:first-child){ margin-top:40px; padding-top:32px; border-top:1px solid var(--line); }
 
 .cat-header{ padding-bottom:24px; margin-bottom:36px; border-bottom:1px solid var(--line); }
 .cat-title{ font-family:var(--display); font-weight:700; letter-spacing:-.02em; font-size:30px; color:var(--ink); margin:0; }

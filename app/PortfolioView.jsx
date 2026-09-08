@@ -123,13 +123,21 @@ function CategoryFeed({ cat, categories }) {
     : [];
   const continuations = continuationsFor(categories, cat.id);
 
+  const isDomesticAbroad = !!(domesticRegion && abroadRegion);
+
   return (
     <div className="cat-feed">
+      {isDomesticAbroad && <h2 className="cat-feed-subhead">국내</h2>}
       <ClipGrid layout={cat.layout} clips={clips} />
       {continuations.map((c) => (
         <ClipGrid key={c.id} layout={c.layout} clips={c.clips} />
       ))}
-      {abroadClips.length > 0 && <ClipGrid layout={cat.layout} clips={abroadClips} />}
+      {abroadClips.length > 0 && (
+        <>
+          <h2 className="cat-feed-subhead">해외</h2>
+          <ClipGrid layout={cat.layout} clips={abroadClips} />
+        </>
+      )}
     </div>
   );
 }
@@ -157,7 +165,7 @@ export default function PortfolioView({ config }) {
         <nav className="app-nav-section">
           <button type="button" className={'app-nav-item' + (view === 'home' ? ' active' : '')} onClick={() => selectView('home')}>
             <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6"><path d="M4 11.5 12 4l8 7.5" /><path d="M6 10v10h12V10" /></svg>
-            홈
+            Home
           </button>
           {navCategories.map((cat) => (
             <button
