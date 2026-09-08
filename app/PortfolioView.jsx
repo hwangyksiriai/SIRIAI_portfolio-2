@@ -117,16 +117,16 @@ function continuationsFor(categories, id) {
   return categories.filter((c) => re.test(c.id) && (c.clips || []).length > 0);
 }
 
-function CategorySection({ cat, categories, overlay }) {
+function CategoryFeed({ cat, categories }) {
   const hasRegions = Array.isArray(cat.regions) && cat.regions.length > 0;
   const [activeRegion, setActiveRegion] = useState(hasRegions ? cat.regions[0].key : null);
   const clips = hasRegions
     ? (cat.regions.find((r) => r.key === activeRegion)?.clips || [])
     : (cat.clips || []);
-  const continuations = categories ? continuationsFor(categories, cat.id) : [];
+  const continuations = continuationsFor(categories, cat.id);
 
   return (
-    <section className={'page' + (overlay ? ' page-overlay' : '')} id={overlay ? undefined : cat.id}>
+    <div className="cat-feed">
       {hasRegions && (
         <RegionToggle regions={cat.regions} active={activeRegion} onChange={setActiveRegion} />
       )}
@@ -134,36 +134,55 @@ function CategorySection({ cat, categories, overlay }) {
       {continuations.map((c) => (
         <ClipGrid key={c.id} layout={c.layout} clips={c.clips} />
       ))}
-    </section>
+    </div>
   );
 }
 
 export default function PortfolioView({ config }) {
   const categories = config.categories;
   const navCategories = categories.filter((cat) => !cat.hideFromNav);
-  const [storyCatId, setStoryCatId] = useState(null);
-  const storyCat = categories.find((cat) => cat.id === storyCatId) || null;
+  const [activeCatId, setActiveCatId] = useState(navCategories[0]?.id ?? null);
+  const activeCategory = categories.find((cat) => cat.id === activeCatId) || null;
+  const mainRef = useRef(null);
 
-  useEffect(() => {
-    if (!storyCatId) return;
-    document.body.style.overflow = 'hidden';
-    function onKeydown(e) {
-      if (e.key === 'Escape') setStoryCatId(null);
-    }
-    window.addEventListener('keydown', onKeydown);
-    return () => {
-      document.body.style.overflow = '';
-      window.removeEventListener('keydown', onKeydown);
-    };
-  }, [storyCatId]);
+  function selectCategory(id) {
+    setActiveCatId(id);
+    mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 
   return (
-    <>
-      <div className="deck" id="deck">
-        {/* 01 PROFILE (Instagram-homage hero) */}
-        <section className="page ig-page">
+    <div className="app-shell">
+      <aside className="app-sidebar">
+        <div className="app-sidebar-logo">SIRIAI</div>
+
+        <nav className="app-nav-section">
+          <div className="app-nav-label">Menu</div>
+          <button type="button" className="app-nav-item" onClick={() => selectCategory(null)}>
+            <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6"><path d="M4 11.5 12 4l8 7.5" /><path d="M6 10v10h12V10" /></svg>
+            Home
+          </button>
+        </nav>
+
+        <nav className="app-nav-section">
+          <div className="app-nav-label">Campaigns</div>
+          {navCategories.map((cat) => (
+            <button
+              type="button"
+              key={cat.id}
+              className={'app-nav-item' + (activeCatId === cat.id ? ' active' : '')}
+              onClick={() => selectCategory(cat.id)}
+            >
+              <SegIcon id={cat.id} />
+              {cat.navLabel}
+            </button>
+          ))}
+        </nav>
+      </aside>
+
+      <main className="app-main" ref={mainRef}>
+        <div className="app-main-inner">
           <div className="ig-topbar">
-            <span className="ig-topbar-logo">SIRIAI</span>
+            <span />
             <div className="ig-topbar-actions">
               <a className="ig-btn-fill" href="https://siriai-business.vercel.app/#contact" target="_blank" rel="noopener noreferrer">Contact</a>
               <a className="ig-btn-link" href="https://siriai.co.kr" target="_blank" rel="noopener noreferrer">홈으로 이동</a>
@@ -190,35 +209,12 @@ export default function PortfolioView({ config }) {
             </div>
           </div>
 
-          <div className="ig-highlights">
-            {navCategories.map((cat) => (
-              <button type="button" className="ig-highlight" key={cat.id} onClick={() => setStoryCatId(cat.id)}>
-                <span className="ig-highlight-ring">
-                  <span className="ig-highlight-circle">
-                    {cat.highlightImage ? <img src={cat.highlightImage} alt="" /> : <SegIcon id={cat.id} />}
-                  </span>
-                </span>
-                <span className="ig-highlight-label">{cat.navLabel}</span>
-              </button>
-            ))}
-          </div>
-        </section>
-      </div>
-
-      {storyCat && (
-        <div className="story-overlay" onClick={() => setStoryCatId(null)}>
-          <div className="story-panel" onClick={(e) => e.stopPropagation()}>
-            <div className="story-panel-head">
-              <span className="story-panel-title">{storyCat.navLabel}</span>
-              <button type="button" className="story-close" onClick={() => setStoryCatId(null)} aria-label="닫기">✕</button>
-            </div>
-            <div className="story-panel-scroll">
-              <CategorySection cat={storyCat} categories={categories} overlay />
-            </div>
-          </div>
+          {activeCategory && (
+            <CategoryFeed cat={activeCategory} categories={categories} key={activeCategory.id} />
+          )}
         </div>
-      )}
-    </>
+      </main>
+    </div>
   );
 }
 
