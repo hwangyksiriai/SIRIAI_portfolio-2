@@ -141,7 +141,7 @@ function CategoryFeed({ cat, categories }) {
 export default function PortfolioView({ config }) {
   const categories = config.categories;
   const navCategories = categories.filter((cat) => !cat.hideFromNav);
-  const [activeCatId, setActiveCatId] = useState(navCategories[0]?.id ?? null);
+  const [activeCatId, setActiveCatId] = useState(null);
   const activeCategory = categories.find((cat) => cat.id === activeCatId) || null;
   const mainRef = useRef(null);
 
@@ -187,38 +187,50 @@ export default function PortfolioView({ config }) {
       </aside>
 
       <main className="app-main" ref={mainRef}>
-        <div className="app-main-inner">
-          <div className="ig-topbar">
-            <span />
-            <div className="ig-topbar-actions">
-              <a className="ig-btn-link" href="https://siriai.co.kr" target="_blank" rel="noopener noreferrer">홈으로 이동</a>
-            </div>
-          </div>
-
-          <div className="ig-profile">
-            <div className={'ig-avatar' + (config.profile?.avatarUrl ? '' : ' ig-avatar-default')}>
-              <img src={config.profile?.avatarUrl || BRAND_SYMBOL} alt="Siriai" />
-            </div>
-            <div className="ig-profile-info">
-              <h1 className="ig-username">siriai.official</h1>
-              <div className="ig-stats">
-                <span><strong>128</strong> 팔로워</span>
-                <span><strong>42</strong> 팔로우</span>
+        {activeCategory ? (
+          <div className="app-main-inner">
+            <div className="ig-topbar">
+              <span />
+              <div className="ig-topbar-actions">
+                <a className="ig-btn-link" href="https://siriai.co.kr" target="_blank" rel="noopener noreferrer">홈으로 이동</a>
               </div>
-              <p className="ig-bio-name">SIRIAI — Private Influencer Curation</p>
-              <p className="ig-bio">
-                SEOUL | BRAND CURATION 🎬 ✦<br className="brk" />
-                📩 hello@siriai.co.kr<br className="brk" />
-                새로움을 설계하는 프라이빗 인플루언서 풀
+            </div>
+
+            <div className="ig-profile">
+              <div className={'ig-avatar' + (config.profile?.avatarUrl ? '' : ' ig-avatar-default')}>
+                <img src={config.profile?.avatarUrl || BRAND_SYMBOL} alt="Siriai" />
+              </div>
+              <div className="ig-profile-info">
+                <h1 className="ig-username">siriai.official</h1>
+                <div className="ig-stats">
+                  <span><strong>128</strong> 팔로워</span>
+                  <span><strong>42</strong> 팔로우</span>
+                </div>
+                <p className="ig-bio-name">SIRIAI — Private Influencer Curation</p>
+                <p className="ig-bio">
+                  SEOUL | BRAND CURATION 🎬 ✦<br className="brk" />
+                  📩 hello@siriai.co.kr<br className="brk" />
+                  새로움을 설계하는 프라이빗 인플루언서 풀
+                </p>
+                <a className="ig-bio-link" href="https://siriai.co.kr" target="_blank" rel="noopener noreferrer">siriai.co.kr</a>
+              </div>
+            </div>
+
+            <CategoryFeed cat={activeCategory} categories={categories} key={activeCategory.id} />
+          </div>
+        ) : (
+          <div className="home-hero" key="home">
+            <div className="home-hero-inner">
+              <div className="home-hero-brand">SIRIAI</div>
+              <h1 className="home-hero-title">감각적인 비주얼을<br />만나보세요.</h1>
+              <img className="home-hero-symbol" src={BRAND_SYMBOL} alt="Siriai" />
+              <p className="home-hero-sub">
+                브랜드의 아이덴티티에 가장 근접한 인플루언서 큐레이션.<br className="brk" />
+                왼쪽 메뉴에서 캠페인을 둘러보세요.
               </p>
-              <a className="ig-bio-link" href="https://siriai.co.kr" target="_blank" rel="noopener noreferrer">siriai.co.kr</a>
             </div>
           </div>
-
-          {activeCategory && (
-            <CategoryFeed cat={activeCategory} categories={categories} key={activeCategory.id} />
-          )}
-        </div>
+        )}
       </main>
 
       <div className="floating-bar">감각적인 비주얼을 만나보세요</div>
