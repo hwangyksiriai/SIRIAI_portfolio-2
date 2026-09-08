@@ -138,15 +138,39 @@ function CategoryFeed({ cat, categories }) {
   );
 }
 
+function ProfileCard({ config }) {
+  return (
+    <div className="ig-profile">
+      <div className={'ig-avatar' + (config.profile?.avatarUrl ? '' : ' ig-avatar-default')}>
+        <img src={config.profile?.avatarUrl || BRAND_SYMBOL} alt="Siriai" />
+      </div>
+      <div className="ig-profile-info">
+        <h1 className="ig-username">siriai.official</h1>
+        <div className="ig-stats">
+          <span><strong>128</strong> 팔로워</span>
+          <span><strong>42</strong> 팔로우</span>
+        </div>
+        <p className="ig-bio-name">SIRIAI — Private Influencer Curation</p>
+        <p className="ig-bio">
+          SEOUL | BRAND CURATION 🎬 ✦<br className="brk" />
+          📩 hello@siriai.co.kr<br className="brk" />
+          새로움을 설계하는 프라이빗 인플루언서 풀
+        </p>
+        <a className="ig-bio-link" href="https://siriai.co.kr" target="_blank" rel="noopener noreferrer">siriai.co.kr</a>
+      </div>
+    </div>
+  );
+}
+
 export default function PortfolioView({ config }) {
   const categories = config.categories;
   const navCategories = categories.filter((cat) => !cat.hideFromNav);
-  const [activeCatId, setActiveCatId] = useState(null);
-  const activeCategory = categories.find((cat) => cat.id === activeCatId) || null;
+  const [view, setView] = useState('home'); // 'home' | 'search' | a category id
+  const activeCategory = categories.find((cat) => cat.id === view) || null;
   const mainRef = useRef(null);
 
-  function selectCategory(id) {
-    setActiveCatId(id);
+  function selectView(v) {
+    setView(v);
     mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -159,11 +183,11 @@ export default function PortfolioView({ config }) {
         </div>
 
         <nav className="app-nav-section">
-          <button type="button" className="app-nav-item" disabled>
+          <button type="button" className={'app-nav-item' + (view === 'search' ? ' active' : '')} onClick={() => selectView('search')}>
             <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
             검색
           </button>
-          <button type="button" className={'app-nav-item' + (activeCatId === null ? ' active' : '')} onClick={() => selectCategory(null)}>
+          <button type="button" className={'app-nav-item' + (view === 'home' ? ' active' : '')} onClick={() => selectView('home')}>
             <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6"><path d="M4 11.5 12 4l8 7.5" /><path d="M6 10v10h12V10" /></svg>
             홈
           </button>
@@ -171,8 +195,8 @@ export default function PortfolioView({ config }) {
             <button
               type="button"
               key={cat.id}
-              className={'app-nav-item' + (activeCatId === cat.id ? ' active' : '')}
-              onClick={() => selectCategory(cat.id)}
+              className={'app-nav-item' + (view === cat.id ? ' active' : '')}
+              onClick={() => selectView(cat.id)}
             >
               <SegIcon id={cat.id} />
               {cat.navLabel}
@@ -196,27 +220,18 @@ export default function PortfolioView({ config }) {
               </div>
             </div>
 
-            <div className="ig-profile">
-              <div className={'ig-avatar' + (config.profile?.avatarUrl ? '' : ' ig-avatar-default')}>
-                <img src={config.profile?.avatarUrl || BRAND_SYMBOL} alt="Siriai" />
-              </div>
-              <div className="ig-profile-info">
-                <h1 className="ig-username">siriai.official</h1>
-                <div className="ig-stats">
-                  <span><strong>128</strong> 팔로워</span>
-                  <span><strong>42</strong> 팔로우</span>
-                </div>
-                <p className="ig-bio-name">SIRIAI — Private Influencer Curation</p>
-                <p className="ig-bio">
-                  SEOUL | BRAND CURATION 🎬 ✦<br className="brk" />
-                  📩 hello@siriai.co.kr<br className="brk" />
-                  새로움을 설계하는 프라이빗 인플루언서 풀
-                </p>
-                <a className="ig-bio-link" href="https://siriai.co.kr" target="_blank" rel="noopener noreferrer">siriai.co.kr</a>
+            <CategoryFeed cat={activeCategory} categories={categories} key={activeCategory.id} />
+          </div>
+        ) : view === 'search' ? (
+          <div className="app-main-inner" key="search">
+            <div className="ig-topbar">
+              <span />
+              <div className="ig-topbar-actions">
+                <a className="ig-btn-link" href="https://siriai.co.kr" target="_blank" rel="noopener noreferrer">홈으로 이동</a>
               </div>
             </div>
 
-            <CategoryFeed cat={activeCategory} categories={categories} key={activeCategory.id} />
+            <ProfileCard config={config} />
           </div>
         ) : (
           <div className="home-hero" key="home">
