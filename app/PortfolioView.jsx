@@ -266,7 +266,7 @@ export default function PortfolioView({ config }) {
 
   const categories = config.categories;
   const navCategories = categories.filter((cat) => !cat.hideFromNav);
-  const totalPages = 3 + categories.length; // cover, values, segments + categories
+  const totalPages = 1 + categories.length; // segments + categories
 
   function collectPages() {
     if (!deckRef.current) return [];
@@ -364,46 +364,7 @@ export default function PortfolioView({ config }) {
       </nav>
 
       <div className="deck" id="deck" ref={deckRef}>
-        {/* 01 COVER */}
-        <section className="page cover">
-          <div className="cover-top">
-            <div className="cover-title">
-              <img className="cover-logo" src={BRAND_LOGO} alt="Siriai" />
-              <div className="jp">しりあい</div>
-            </div>
-            <div className="cover-copy">
-              <p className="primary">새로움을 설계하는 프라이빗 인플루언서 풀<br className="brk" />—그것이 SIRIAI의 방식입니다.</p>
-              <p className="secondary">시리아이는 브랜드의 미적 기준과 정교하게 호흡하는 감도 높은 크리에이터를<br className="brk" />기반으로 큐레이션을 수행합니다. AI 기반 분석과 무드 중심 선별 방식을 결합해,<br className="brk" />브랜드의 아이덴티티에 가장 근접한 인플루언서를 제공합니다.</p>
-            </div>
-          </div>
-          <div className="cover-still">
-            <img className="fill" src="/media/cover.png" alt="" onError={(e) => e.currentTarget.remove()} />
-          </div>
-        </section>
-
-        {/* 02 VALUES */}
-        <section className="page">
-          <h1 className="disp" style={{ fontSize: 'clamp(34px,4vw + 3vh,68px)', marginTop: '48px' }}>Curating Creators,<br />Elevating Brands</h1>
-          <div className="values-grid">
-            <div className="value-card">
-              <div className="still"><img src="/media/value-1.png" alt="" onError={(e) => e.currentTarget.remove()} /></div>
-              <h3>Mood-Centric Curation</h3>
-              <p>브랜드에 딱 맞는 크리에이터를 선별해,<br className="brk" />브랜드의 가치를 더 높여드립니다.</p>
-            </div>
-            <div className="value-card">
-              <div className="still"><img src="/media/value-2.png" alt="" onError={(e) => e.currentTarget.remove()} /></div>
-              <h3>AI-Driven Discovery</h3>
-              <p>AI 시스템을 통해 신규 인플루언서를<br className="brk" />지속적으로 발굴합니다.</p>
-            </div>
-            <div className="value-card">
-              <div className="still"><img src="/media/value-3.png" alt="" onError={(e) => e.currentTarget.remove()} /></div>
-              <h3>Premium Content Quality</h3>
-              <p>합리적 고효율 · 높은 영상 퀄리티로<br className="brk" />캠페인마다 중복 없는 풀을 설계합니다.</p>
-            </div>
-          </div>
-        </section>
-
-        {/* 03 SEGMENTS */}
+        {/* 01 SEGMENTS */}
         <section className="page">
           <h1 className="disp" style={{ fontSize: 'clamp(34px,4vw + 3vh,68px)', marginTop: '48px' }}>Our Core<br />Campaign Segments</h1>
           <p className="lead">SIRIAI는 다양한 카테고리의 캠페인을 폭넓게 수행하며,<br className="brk" />브랜드별 니즈에 맞춘 인플루언서 협업을 설계합니다.</p>
