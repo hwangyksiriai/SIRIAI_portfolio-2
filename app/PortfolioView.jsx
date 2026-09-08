@@ -150,6 +150,10 @@ export default function PortfolioView({ config }) {
 
   const categories = config.categories;
   const navCategories = categories.filter((cat) => !cat.hideFromNav);
+  const peekClips = navCategories
+    .map((cat) => cat.clips?.[0] || cat.regions?.find((r) => r.clips?.length)?.clips[0])
+    .filter(Boolean)
+    .slice(0, 4);
 
   function collectPages() {
     if (!deckRef.current) return [];
@@ -254,6 +258,12 @@ export default function PortfolioView({ config }) {
           </div>
 
           <ContentTypeTabs className="cat-tabs-spaced" />
+
+          {peekClips.length > 0 && (
+            <div className="ig-peek">
+              {peekClips.map((src, i) => <Clip key={i} src={src} />)}
+            </div>
+          )}
         </section>
 
         {categories.map((cat) => (
