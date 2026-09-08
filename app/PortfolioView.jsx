@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 
 const BRAND_SYMBOL = '/media/brand/symbol.png';
-const BRAND_LOGO = '/media/brand/logo-white.png';
 
 /* 1x1 transparent GIF. Without a poster, mobile browsers paint their own grey
    play-button placeholder until the first frame decodes; this hands them an
@@ -334,20 +333,6 @@ export default function PortfolioView({ config }) {
 
   return (
     <>
-      <nav className="cat-nav" id="cat-nav">
-        <div className="cat-nav-inner">
-          <a className="wordmark" href="#" onClick={(e) => { e.preventDefault(); deckRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-            <span className="mark"><img src={BRAND_SYMBOL} alt="" /></span>
-            <img className="word-logo" src={BRAND_LOGO} alt="Siriai" />
-          </a>
-          <div className="cat-nav-links">
-            <div className="cat-nav-external">
-              <a className="nav-external nav-external-white" href="https://siriai.co.kr" target="_blank" rel="noopener noreferrer">홈으로 이동 <span className="arrow">↗</span></a>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       <div className="deck" id="deck" ref={deckRef}>
         {/* 01 PROFILE (Instagram-homage hero) */}
         <section className="page ig-page">
@@ -380,7 +365,9 @@ export default function PortfolioView({ config }) {
           <div className="ig-highlights">
             {navCategories.map((cat) => (
               <a className="ig-highlight" href={`#${cat.id}`} key={cat.id} onClick={(e) => { e.preventDefault(); goToCategory(cat.id); }}>
-                <span className="ig-highlight-ring"><SegIcon id={cat.id} /></span>
+                <span className="ig-highlight-ring">
+                  <span className="ig-highlight-circle"><SegIcon id={cat.id} /></span>
+                </span>
                 <span className="ig-highlight-label">{cat.navLabel}</span>
               </a>
             ))}
