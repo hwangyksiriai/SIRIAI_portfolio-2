@@ -145,17 +145,50 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
   .app-main-inner{ padding:24px 20px 100px; }
 }
 
-/* Glass floating bar, echoing Apple Music's rounded mini-player pill. */
+/* Glass floating bar, echoing Apple Music's rounded mini-player pill —
+   now doubling as a quick lead-capture form. */
 .floating-bar{
   position:fixed; left:284px; right:20px; bottom:20px; z-index:40;
-  display:flex; align-items:center; justify-content:center;
-  padding:15px 24px; text-align:center; border-radius:18px;
-  font-family:var(--display); font-weight:600; font-size:14px; color:var(--ink);
-  background:rgba(255,255,255,.6); backdrop-filter:blur(18px) saturate(1.6); -webkit-backdrop-filter:blur(18px) saturate(1.6);
-  border:1px solid rgba(23,19,16,.08);
-  box-shadow:0 12px 32px -12px rgba(0,0,0,.18);
+  border-radius:18px;
+  background:rgba(23,19,16,.82); backdrop-filter:blur(18px) saturate(1.6); -webkit-backdrop-filter:blur(18px) saturate(1.6);
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:0 16px 40px -16px rgba(0,0,0,.45);
 }
 @media (max-width:900px){ .floating-bar{ left:20px; } }
+
+.floating-bar-form{ padding:16px 20px; }
+.lead-title{
+  display:flex; align-items:center; gap:6px;
+  font-family:var(--display); font-weight:700; font-size:14px; color:#fff; margin-bottom:12px;
+}
+.lead-bolt{ font-size:13px; }
+.lead-fields{ display:flex; gap:10px; }
+.lead-input{
+  flex:1; min-width:0; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.08);
+  border-radius:10px; padding:11px 14px; font-family:var(--body); font-size:14px; color:#fff; outline:none;
+  transition:border-color .15s ease, background .15s ease;
+}
+.lead-input::placeholder{ color:rgba(255,255,255,.45); }
+.lead-input:focus{ border-color:rgba(255,255,255,.4); background:rgba(255,255,255,.13); }
+.lead-submit{
+  flex:0 0 auto; padding:11px 26px; border:none; border-radius:10px; cursor:pointer;
+  font-family:var(--body); font-weight:700; font-size:14px; color:#fff;
+  background:linear-gradient(135deg,#ff5ea8,#ff8a3d);
+  transition:filter .15s ease, opacity .15s ease;
+}
+.lead-submit:hover{ filter:brightness(1.06); }
+.lead-submit:disabled{ opacity:.6; cursor:default; }
+.lead-error{ margin:10px 0 0; font-size:12.5px; color:#ff9f9f; }
+.lead-done{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+.lead-done span{ font-family:var(--body); font-size:14px; font-weight:600; color:#fff; }
+.lead-again{
+  flex:0 0 auto; border:1px solid rgba(255,255,255,.25); background:none; color:#fff;
+  padding:8px 16px; border-radius:999px; font-size:12.5px; font-weight:600; cursor:pointer;
+}
+@media (max-width:640px){
+  .lead-fields{ flex-wrap:wrap; }
+  .lead-submit{ width:100%; }
+}
 
 /* Apple-Music-homage Home screen: full-bleed black hero, slides in from
    the right whenever "홈" is selected. */
@@ -187,17 +220,19 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
 .search-input{ flex:1; border:none; background:none; outline:none; font-family:var(--body); font-size:15px; color:var(--ink); }
 .search-input::placeholder{ color:var(--muted); }
 
-.search-results{ margin-top:28px; display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:14px; }
+.search-section-title{ margin-top:36px; font-family:var(--display); font-weight:700; font-size:18px; color:var(--ink); }
+
+.search-results{ margin-top:16px; display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:16px; }
 .search-result{
-  display:flex; flex-direction:column; align-items:center; gap:10px; padding:22px 12px;
-  border:1px solid var(--line); border-radius:14px; background:none; cursor:pointer;
+  display:flex; flex-direction:column; gap:10px; padding:12px;
+  border:1px solid var(--line); border-radius:14px; background:none; cursor:pointer; text-align:left;
   transition:border-color .15s ease, background .15s ease;
 }
 .search-result:hover{ border-color:var(--accent); background:var(--accent-soft); }
-.search-result-icon svg{ width:26px; height:26px; stroke:var(--muted); stroke-width:1.5; }
-.search-result:hover .search-result-icon svg{ stroke:var(--accent); }
-.search-result-label{ font-size:13.5px; font-weight:600; color:var(--ink); text-align:center; }
-.search-empty{ margin-top:28px; color:var(--muted); font-size:14px; }
+.search-result-thumbs{ display:grid; grid-template-columns:repeat(2,1fr); gap:6px; }
+.search-result-thumbs .clip{ aspect-ratio:9/16; border-radius:8px; }
+.search-result-label{ font-size:13.5px; font-weight:600; color:var(--ink); }
+.search-empty{ margin-top:16px; color:var(--muted); font-size:14px; }
 
 .ig-topbar{
   display:flex; align-items:center; justify-content:space-between; gap:16px;

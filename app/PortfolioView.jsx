@@ -105,6 +105,15 @@ function continuationsFor(categories, id) {
   return categories.filter((c) => re.test(c.id) && (c.clips || []).length > 0);
 }
 
+/* A couple of clips to preview a category with in the search view,
+   Apple-Music-"인기 신곡"-style, regardless of whether it uses regions. */
+function previewClipsOf(cat, n) {
+  const clips = Array.isArray(cat.clips) && cat.clips.length
+    ? cat.clips
+    : (cat.regions || []).flatMap((r) => r.clips || []);
+  return clips.slice(0, n);
+}
+
 function CategoryFeed({ cat, categories }) {
   const hasRegions = Array.isArray(cat.regions) && cat.regions.length > 0;
   const clips = hasRegions
@@ -233,11 +242,17 @@ export default function PortfolioView({ config }) {
               />
             </div>
 
+            <h2 className="search-section-title">
+              {query.trim() ? `"${query}" 검색 결과` : '인기 캠페인'}
+            </h2>
+
             {searchResults.length > 0 ? (
               <div className="search-results">
                 {searchResults.map((cat) => (
                   <button type="button" className="search-result" key={cat.id} onClick={() => selectView(cat.id)}>
-                    <span className="search-result-icon"><SegIcon id={cat.id} /></span>
+                    <div className="search-result-thumbs">
+                      {previewClipsOf(cat, 2).map((src, i) => <Clip key={i} src={src} />)}
+                    </div>
                     <span className="search-result-label">{cat.navLabel}</span>
                   </button>
                 ))}
@@ -261,8 +276,74 @@ export default function PortfolioView({ config }) {
         )}
       </main>
 
-      <div className="floating-bar">감각적인 비주얼을 만나보세요</div>
+      <LeadForm categoryLabel={activeCategory?.navLabel} />
     </div>
+  );
+}
+
+function LeadForm({ categoryLabel }) {
+  const [brand, setBrand] = useState('');
+  const [phone, setPhone] = useState('');
+  const [status, setStatus] = useState('idle'); // idle | sending | done | error
+
+  async function onSubmit(e) {
+    e.preventDefault();
+    if (!brand.trim() || !phone.trim()) return;
+    setStatus('sending');
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brand, phone, category: categoryLabel || null }),
+      });
+      if (!res.ok) throw new Error('failed');
+      setStatus('done');
+      setBrand('');
+      setPhone('');
+    } catch {
+      setStatus('error');
+    }
+  }
+
+  if (status === 'done') {
+    return (
+      <div className="floating-bar floating-bar-form">
+        <div className="lead-done">
+          <span>문의가 접수됐어요. 빠르게 연락드릴게요! 🎉</span>
+          <button type="button" className="lead-again" onClick={() => setStatus('idle')}>다시 문의하기</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <form className="floating-bar floating-bar-form" onSubmit={onSubmit}>
+      <div className="lead-title">
+        {categoryLabel ? `${categoryLabel} 릴스 제작 문의` : 'SIRIAI 캠페인 제작 문의'} <span className="lead-bolt">⚡</span>
+      </div>
+      <div className="lead-fields">
+        <input
+          type="text"
+          className="lead-input"
+          placeholder="브랜드명"
+          value={brand}
+          onChange={(e) => setBrand(e.target.value)}
+          required
+        />
+        <input
+          type="tel"
+          className="lead-input"
+          placeholder="010-"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          required
+        />
+        <button type="submit" className="lead-submit" disabled={status === 'sending'}>
+          {status === 'sending' ? '전송 중...' : '완료'}
+        </button>
+      </div>
+      {status === 'error' && <p className="lead-error">전송에 실패했어요. 다시 시도해주세요.</p>}
+    </form>
   );
 }
 

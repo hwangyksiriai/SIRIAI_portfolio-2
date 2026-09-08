@@ -7,6 +7,9 @@ export default function AdminPage() {
   const [config, setConfig] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [selectedRegionKey, setSelectedRegionKey] = useState(null);
+  const [view, setView] = useState('categories'); // 'categories' | 'leads'
+  const [leads, setLeads] = useState(null);
+  const [leadsLoading, setLeadsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState(null);
   const [uploadingCount, setUploadingCount] = useState(0);
@@ -15,6 +18,16 @@ export default function AdminPage() {
   const [dragOverCatId, setDragOverCatId] = useState(null);
   const dragSource = useRef(null);
   const fileInputRef = useRef(null);
+
+  function openLeads() {
+    setView('leads');
+    if (leads !== null) return;
+    setLeadsLoading(true);
+    fetch('/api/leads')
+      .then((r) => r.json())
+      .then((data) => setLeads(data.leads || []))
+      .finally(() => setLeadsLoading(false));
+  }
 
   useEffect(() => {
     fetch('/api/admin/config')
@@ -252,10 +265,18 @@ export default function AdminPage() {
           </div>
         </div>
 
+        <button
+          onClick={openLeads}
+          style={{ ...styles.navItem, ...(view === 'leads' ? styles.navItemActive : {}), marginBottom: 8 }}
+        >
+          📋 문의 목록{leads ? ` (${leads.length})` : ''}
+        </button>
+
         {config.categories.map((cat, i) => (
           <button
             key={cat.id}
             onClick={() => {
+              setView('categories');
               setSelectedId(cat.id);
               setSelectedRegionKey(cat.regions ? cat.regions[0].key : null);
             }}
@@ -264,7 +285,7 @@ export default function AdminPage() {
             onDrop={() => onSidebarDrop(cat.id)}
             style={{
               ...styles.navItem,
-              ...(cat.id === selectedId ? styles.navItemActive : {}),
+              ...(view === 'categories' && cat.id === selectedId ? styles.navItemActive : {}),
               ...(cat.id === dragOverCatId ? styles.navItemDragOver : {}),
             }}
           >
@@ -277,6 +298,30 @@ export default function AdminPage() {
       </aside>
 
       <main style={styles.main}>
+        {view === 'leads' ? (
+          <>
+            <div style={styles.topBar}>
+              <div style={{ fontSize: 22, fontWeight: 700 }}>문의 목록</div>
+            </div>
+            {leadsLoading ? (
+              <p style={styles.hint}>불러오는 중...</p>
+            ) : !leads || leads.length === 0 ? (
+              <p style={styles.hint}>아직 들어온 문의가 없습니다.</p>
+            ) : (
+              <div style={styles.leadsTable}>
+                {leads.map((lead) => (
+                  <div key={lead.id} style={styles.leadRow}>
+                    <div style={styles.leadBrand}>{lead.brand}</div>
+                    <div style={styles.leadPhone}>{lead.phone}</div>
+                    <div style={styles.leadCategory}>{lead.category || '-'}</div>
+                    <div style={styles.leadTime}>{new Date(lead.createdAt).toLocaleString('ko-KR')}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+        <>
         <div style={styles.topBar}>
           <input
             value={category.title}
@@ -361,6 +406,8 @@ export default function AdminPage() {
             />
           </label>
         </div>
+        </>
+        )}
       </main>
     </div>
   );
@@ -401,4 +448,10 @@ const styles = {
   clipIndex: { fontSize: 11, color: '#948e82' },
   removeBtn: { background: 'transparent', border: 'none', color: '#e08a6b', cursor: 'pointer', fontSize: 11 },
   addCard: { aspectRatio: '9/16', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dashed #262019', borderRadius: 10, color: '#948e82', fontSize: 12, cursor: 'pointer', textAlign: 'center', padding: 8 },
+  leadsTable: { display: 'flex', flexDirection: 'column', gap: 8 },
+  leadRow: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1.2fr', gap: 12, alignItems: 'center', padding: '12px 14px', background: '#15130f', border: '1px solid #262019', borderRadius: 10, fontSize: 13 },
+  leadBrand: { fontWeight: 700, color: '#f2ede4' },
+  leadPhone: { color: '#f2ede4' },
+  leadCategory: { color: '#c98a3f' },
+  leadTime: { color: '#948e82', fontSize: 12 },
 };
