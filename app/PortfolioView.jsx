@@ -153,18 +153,20 @@ export default function PortfolioView({ config }) {
   return (
     <div className="app-shell">
       <aside className="app-sidebar">
-        <div className="app-sidebar-logo">SIRIAI</div>
+        <div className="app-sidebar-logo">
+          <span className="app-sidebar-logo-mark" />
+          SIRIAI
+        </div>
 
         <nav className="app-nav-section">
-          <div className="app-nav-label">Menu</div>
-          <button type="button" className="app-nav-item" onClick={() => selectCategory(null)}>
-            <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6"><path d="M4 11.5 12 4l8 7.5" /><path d="M6 10v10h12V10" /></svg>
-            Home
+          <button type="button" className="app-nav-item" disabled>
+            <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+            검색
           </button>
-        </nav>
-
-        <nav className="app-nav-section">
-          <div className="app-nav-label">Campaigns</div>
+          <button type="button" className={'app-nav-item' + (activeCatId === null ? ' active' : '')} onClick={() => selectCategory(null)}>
+            <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6"><path d="M4 11.5 12 4l8 7.5" /><path d="M6 10v10h12V10" /></svg>
+            홈
+          </button>
           {navCategories.map((cat) => (
             <button
               type="button"
@@ -177,6 +179,11 @@ export default function PortfolioView({ config }) {
             </button>
           ))}
         </nav>
+
+        <a className="app-sidebar-cta" href="https://siriai-business.vercel.app/#contact" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.8"><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" /></svg>
+          Contact
+        </a>
       </aside>
 
       <main className="app-main" ref={mainRef}>
@@ -184,7 +191,6 @@ export default function PortfolioView({ config }) {
           <div className="ig-topbar">
             <span />
             <div className="ig-topbar-actions">
-              <a className="ig-btn-fill" href="https://siriai-business.vercel.app/#contact" target="_blank" rel="noopener noreferrer">Contact</a>
               <a className="ig-btn-link" href="https://siriai.co.kr" target="_blank" rel="noopener noreferrer">홈으로 이동</a>
             </div>
           </div>
@@ -214,6 +220,8 @@ export default function PortfolioView({ config }) {
           )}
         </div>
       </main>
+
+      <div className="floating-bar">감각적인 비주얼을 만나보세요</div>
     </div>
   );
 }
