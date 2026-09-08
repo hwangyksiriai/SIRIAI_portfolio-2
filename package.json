@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "migrate-blob": "node scripts/migrate-to-blob.mjs"
+    "migrate-blob": "node scripts/migrate-to-blob.mjs",
+    "clone-remote": "node scripts/clone-remote-site.mjs"
   },
   "dependencies": {
     "@vercel/blob": "^0.27.0",
