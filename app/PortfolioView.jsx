@@ -326,7 +326,7 @@ export default function PortfolioView({ config }) {
         {/* 01 PROFILE (Instagram-homage hero) */}
         <section className="page ig-page">
           <div className="ig-topbar">
-            <span className="ig-topbar-logo">Instagram</span>
+            <span className="ig-topbar-logo">SIRIAI</span>
             <div className="ig-topbar-actions">
               <a className="ig-btn-fill" href="https://siriai-business.vercel.app/#contact" target="_blank" rel="noopener noreferrer">Contact</a>
               <a className="ig-btn-link" href="https://siriai.co.kr" target="_blank" rel="noopener noreferrer">홈으로 이동</a>
@@ -334,7 +334,9 @@ export default function PortfolioView({ config }) {
           </div>
 
           <div className="ig-profile">
-            <div className="ig-avatar"><img src={BRAND_SYMBOL} alt="Siriai" /></div>
+            <div className={'ig-avatar' + (config.profile?.avatarUrl ? '' : ' ig-avatar-default')}>
+              <img src={config.profile?.avatarUrl || BRAND_SYMBOL} alt="Siriai" />
+            </div>
             <div className="ig-profile-info">
               <h1 className="ig-username">siriai.official</h1>
               <div className="ig-stats">
@@ -355,7 +357,9 @@ export default function PortfolioView({ config }) {
             {navCategories.map((cat) => (
               <a className="ig-highlight" href={`#${cat.id}`} key={cat.id} onClick={(e) => { e.preventDefault(); goToCategory(cat.id); }}>
                 <span className="ig-highlight-ring">
-                  <span className="ig-highlight-circle"><SegIcon id={cat.id} /></span>
+                  <span className="ig-highlight-circle">
+                    {cat.highlightImage ? <img src={cat.highlightImage} alt="" /> : <SegIcon id={cat.id} />}
+                  </span>
                 </span>
                 <span className="ig-highlight-label">{cat.navLabel}</span>
               </a>

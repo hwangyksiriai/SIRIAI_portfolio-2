@@ -10,6 +10,8 @@ export default function AdminPage() {
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState(null);
   const [uploadingCount, setUploadingCount] = useState(0);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [highlightUploading, setHighlightUploading] = useState(false);
   const [dragOverCatId, setDragOverCatId] = useState(null);
   const dragSource = useRef(null);
   const fileInputRef = useRef(null);
@@ -56,6 +58,59 @@ export default function AdminPage() {
       cat.title = title;
       return next;
     });
+  }
+
+  function updateCategoryHighlight(url) {
+    setConfig((prev) => {
+      const next = structuredClone(prev);
+      const cat = next.categories.find((c) => c.id === selectedId);
+      cat.highlightImage = url;
+      return next;
+    });
+  }
+
+  function updateAvatar(url) {
+    setConfig((prev) => {
+      const next = structuredClone(prev);
+      next.profile = { ...(next.profile || {}), avatarUrl: url };
+      return next;
+    });
+  }
+
+  async function onAvatarSelected(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      const blob = await upload(`profile/${Date.now()}-${file.name}`, file, {
+        access: 'public',
+        handleUploadUrl: '/api/admin/upload',
+      });
+      updateAvatar(blob.url);
+    } catch (err) {
+      console.error('avatar upload failed', err);
+      alert('프로필 사진 업로드에 실패했습니다');
+    }
+    setAvatarUploading(false);
+  }
+
+  async function onHighlightSelected(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setHighlightUploading(true);
+    try {
+      const blob = await upload(`media/${selectedId}/highlight-${Date.now()}-${file.name}`, file, {
+        access: 'public',
+        handleUploadUrl: '/api/admin/upload',
+      });
+      updateCategoryHighlight(blob.url);
+    } catch (err) {
+      console.error('highlight upload failed', err);
+      alert('하이라이트 사진 업로드에 실패했습니다');
+    }
+    setHighlightUploading(false);
   }
 
   function removeClip(index) {
@@ -180,6 +235,23 @@ export default function AdminPage() {
     <div style={styles.wrap}>
       <aside style={styles.sidebar}>
         <div style={styles.sidebarHeader}>SIRIAI Admin</div>
+
+        <div style={styles.profileBox}>
+          <div style={styles.profileAvatar}>
+            {config.profile?.avatarUrl && <img src={config.profile.avatarUrl} alt="" style={styles.profileAvatarImg} />}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={styles.profileLabel}>프로필 사진</div>
+            <label style={styles.smallBtn}>
+              {avatarUploading ? '업로드 중...' : '사진 변경'}
+              <input type="file" accept="image/png,image/jpeg" onChange={onAvatarSelected} style={{ display: 'none' }} />
+            </label>
+            {config.profile?.avatarUrl && (
+              <button onClick={() => updateAvatar(null)} style={styles.smallRemoveBtn}>기본으로</button>
+            )}
+          </div>
+        </div>
+
         {config.categories.map((cat, i) => (
           <button
             key={cat.id}
@@ -216,6 +288,24 @@ export default function AdminPage() {
             <button onClick={onSave} disabled={saving} style={styles.saveBtn}>
               {saving ? '저장 중...' : '저장'}
             </button>
+          </div>
+        </div>
+
+        <div style={styles.highlightBox}>
+          <div style={styles.highlightThumb}>
+            {category.highlightImage
+              ? <img src={category.highlightImage} alt="" style={styles.profileAvatarImg} />
+              : <span style={styles.highlightThumbEmpty}>아이콘</span>}
+          </div>
+          <div>
+            <div style={styles.profileLabel}>이 카테고리의 하이라이트 사진</div>
+            <label style={styles.smallBtn}>
+              {highlightUploading ? '업로드 중...' : '사진 변경'}
+              <input type="file" accept="image/png,image/jpeg" onChange={onHighlightSelected} style={{ display: 'none' }} />
+            </label>
+            {category.highlightImage && (
+              <button onClick={() => updateCategoryHighlight(null)} style={styles.smallRemoveBtn}>기본 아이콘으로</button>
+            )}
           </div>
         </div>
 
@@ -281,6 +371,15 @@ const styles = {
   wrap: { display: 'flex', minHeight: '100vh', background: '#0a0908', color: '#f2ede4', fontFamily: 'system-ui, sans-serif' },
   sidebar: { width: 220, borderRight: '1px solid #262019', display: 'flex', flexDirection: 'column', padding: 16, gap: 4 },
   sidebarHeader: { fontWeight: 700, fontSize: 15, marginBottom: 12 },
+  profileBox: { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 8px', marginBottom: 12, border: '1px solid #262019', borderRadius: 10 },
+  profileAvatar: { width: 44, height: 44, borderRadius: '50%', overflow: 'hidden', background: '#15130f', flex: '0 0 auto' },
+  profileAvatarImg: { width: '100%', height: '100%', objectFit: 'cover' },
+  profileLabel: { fontSize: 11, color: '#948e82', marginBottom: 4 },
+  smallBtn: { display: 'inline-block', fontSize: 11, color: '#f2ede4', background: '#15130f', border: '1px solid #262019', borderRadius: 6, padding: '4px 8px', cursor: 'pointer' },
+  smallRemoveBtn: { display: 'inline-block', fontSize: 11, color: '#e08a6b', background: 'transparent', border: 'none', cursor: 'pointer', marginLeft: 8, padding: 0 },
+  highlightBox: { display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', marginBottom: 16, border: '1px solid #262019', borderRadius: 10 },
+  highlightThumb: { width: 56, height: 56, borderRadius: '50%', overflow: 'hidden', background: '#15130f', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' },
+  highlightThumbEmpty: { fontSize: 10, color: '#948e82' },
   navItem: { display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', background: 'transparent', border: '1px solid transparent', color: '#948e82', padding: '8px 10px', borderRadius: 8, cursor: 'pointer', fontSize: 13 },
   navItemActive: { background: '#15130f', color: '#f2ede4' },
   navItemDragOver: { borderColor: '#c98a3f', background: 'rgba(201,138,63,.14)', color: '#f2ede4' },
