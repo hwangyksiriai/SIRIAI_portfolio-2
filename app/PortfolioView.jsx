@@ -261,7 +261,6 @@ function CategorySection({ cat, idx }) {
 export default function PortfolioView({ config }) {
   const deckRef = useRef(null);
   const pageRefs = useRef([]);
-  const [activeCat, setActiveCat] = useState(null);
   const [pageLabel, setPageLabel] = useState('01');
 
   const categories = config.categories;
@@ -293,8 +292,6 @@ export default function PortfolioView({ config }) {
       const pages = collectPages();
       const i = currentIndex();
       setPageLabel(String(i + 1).padStart(2, '0'));
-      const id = pages[i]?.id;
-      if (id) setActiveCat(id.replace(/-\d+$/, ''));
     }
 
     function onKeydown(e) {
@@ -344,18 +341,6 @@ export default function PortfolioView({ config }) {
             <img className="word-logo" src={BRAND_LOGO} alt="Siriai" />
           </a>
           <div className="cat-nav-links">
-            <div className="cat-nav-cats">
-              {navCategories.map((cat) => (
-                <a
-                  key={cat.id}
-                  href={`#${cat.id}`}
-                  className={activeCat === cat.id ? 'active' : ''}
-                  onClick={(e) => { e.preventDefault(); goToCategory(cat.id); }}
-                >
-                  {cat.navLabel}
-                </a>
-              ))}
-            </div>
             <div className="cat-nav-external">
               <a className="nav-external nav-external-white" href="https://siriai.co.kr" target="_blank" rel="noopener noreferrer">홈으로 이동 <span className="arrow">↗</span></a>
             </div>
