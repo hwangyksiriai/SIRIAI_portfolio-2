@@ -65,8 +65,9 @@ function Clip({ src, landscape }) {
 }
 
 /* Instagram-homage content-type tabs shown above each category's clips.
-   Every category here is video, so Reels is always the active tab; Feed and
-   Tagged are decorative, matching the real profile tab row. */
+   Every category here is video, so Reels is always the active tab (drawn as
+   a solid badge, matching Instagram's filled state); the rest are
+   decorative, matching the real profile tab row. */
 function ContentTypeTabs() {
   return (
     <div className="cat-tabs">
@@ -74,7 +75,10 @@ function ContentTypeTabs() {
         <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18M15 3v18M3 9h18M3 15h18" /></svg>
       </span>
       <span className="cat-tab active">
-        <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6"><rect x="3" y="3" width="18" height="18" rx="4" /><path d="M10 8l6 4-6 4V8Z" /></svg>
+        <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="6" fill="currentColor" /><path d="M10 8l6 4-6 4V8Z" fill="var(--bg)" /></svg>
+      </span>
+      <span className="cat-tab" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6"><path d="M21 12a9 9 0 1 1-3-6.7" /><path d="M21 3v6h-6" /></svg>
       </span>
       <span className="cat-tab" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6"><rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="12" cy="10" r="3" /><path d="M7 17c0-2.8 2.2-5 5-5s5 2.2 5 5" /></svg>
@@ -248,6 +252,8 @@ export default function PortfolioView({ config }) {
               </a>
             ))}
           </div>
+
+          <ContentTypeTabs />
         </section>
 
         {categories.map((cat) => (
