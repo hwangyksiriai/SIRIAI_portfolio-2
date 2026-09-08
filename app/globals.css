@@ -80,6 +80,7 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
 
 /* Instagram-homage content-type tab row (feed / reels / refresh / tagged) */
 .cat-tabs{ display:flex; padding:18px 0; }
+.cat-tabs.cat-tabs-spaced{ margin-top:20px; }
 .cat-tab{ flex:1; display:flex; align-items:center; justify-content:center; color:var(--muted); }
 .cat-tab svg{ width:24px; height:24px; stroke:currentColor; }
 .cat-tab.active{ color:var(--ink); }

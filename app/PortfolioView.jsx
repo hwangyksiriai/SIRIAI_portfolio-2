@@ -68,9 +68,9 @@ function Clip({ src, landscape }) {
    Every category here is video, so Reels is always the active tab (drawn as
    a solid badge, matching Instagram's filled state); the rest are
    decorative, matching the real profile tab row. */
-function ContentTypeTabs() {
+function ContentTypeTabs({ className }) {
   return (
-    <div className="cat-tabs">
+    <div className={'cat-tabs' + (className ? ' ' + className : '')}>
       <span className="cat-tab" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18M15 3v18M3 9h18M3 15h18" /></svg>
       </span>
@@ -253,7 +253,7 @@ export default function PortfolioView({ config }) {
             ))}
           </div>
 
-          <ContentTypeTabs />
+          <ContentTypeTabs className="cat-tabs-spaced" />
         </section>
 
         {categories.map((cat) => (
