@@ -46,11 +46,6 @@ body{
   .page{ padding-top:52px; padding-bottom:66px; }
 }
 
-.idx-tag{ font-family:var(--mono); font-weight:700; font-size:18px; letter-spacing:.02em; color:var(--muted); margin:0 0 var(--sp-lg); display:flex; align-items:center; gap:10px; }
-.idx-tag .rule{ width:32px; height:1px; background:var(--line); display:inline-block; }
-.idx-tag .accent{ color:rgba(23,19,16,.5); }
-
-.eyebrow{ font-family:var(--mono); font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--accent); margin:0 0 14px; }
 h1.disp{ font-family:var(--display); font-weight:600; letter-spacing:-.005em; line-height:1.1; margin:0; text-wrap:balance; }
 p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--muted); max-width:560px; margin:20px 0 0; }
 @media (max-width:720px){ p.lead{ font-size:16px; line-height:1.6; max-width:100%; } }
@@ -74,12 +69,7 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
 .seg-cell:hover .name{ color:var(--accent); }
 
 /* Category pages */
-.cat-head{ display:flex; align-items:flex-end; justify-content:space-between; gap:24px; flex-wrap:wrap; }
-.cat-head h1.disp{ font-size:clamp(30px,3vw + 3vh,55px); }
-.cat-tag{ font-family:var(--mono); font-size:11px; letter-spacing:.03em; color:var(--muted); border:1px solid var(--line); padding:6px 12px; border-radius:999px; white-space:nowrap; }
-@media (max-width:720px){ .cat-head h1.disp{ font-size:34px; } }
-
-.region-toggle{ display:flex; gap:8px; }
+.region-toggle{ display:flex; gap:8px; margin-bottom:20px; }
 .region-btn{
   font-family:var(--body); font-size:13px; font-weight:600; letter-spacing:0;
   color:var(--muted); background:transparent; border:1px solid var(--line); padding:7px 16px;
@@ -87,6 +77,15 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
 }
 .region-btn:hover{ color:var(--ink); }
 .region-btn.active{ color:var(--ink); border-color:var(--accent); background:var(--accent-soft); }
+
+/* Instagram-homage content-type tab row (feed / reels / tagged) */
+.cat-tabs{ display:flex; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+.cat-tab{
+  flex:1; display:flex; align-items:center; justify-content:center; padding:14px 0;
+  color:var(--muted); border-top:1px solid transparent; margin-top:-1px;
+}
+.cat-tab svg{ width:22px; height:22px; stroke:currentColor; }
+.cat-tab.active{ color:var(--ink); border-top-color:var(--ink); }
 
 .clip-grid{ margin-top:36px; display:grid; grid-template-columns:repeat(6,1fr); grid-auto-rows:64px; gap:var(--sp-md); flex:1; min-height:0; }
 @media (max-width:900px){ .clip-grid{ grid-template-columns:repeat(2,1fr); grid-auto-rows:minmax(120px,auto); flex:none; min-height:auto; } }
@@ -136,53 +135,6 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
 
 .cat-foot{ margin-top:20px; font-family:var(--mono); font-size:11px; color:var(--muted); letter-spacing:.03em; }
 
-/* Brand marquee for repeated category titles (Beauty 02+), ported from the
-   "Trusted by" band on siriai.co.kr. The track holds the brand list twice and
-   padding-right is kept equal to gap, so scrollWidth/2 lands exactly on the
-   start of the second copy — that is what makes the wrap seamless. Motion is
-   driven from JS (see TitleMarquee); the keyframes below are the no-JS path. */
-.title-marquee{
-  position:relative; display:flex; overflow:hidden;
-  margin-left:calc(-1 * var(--pad-x)); margin-right:calc(-1 * var(--pad-x));
-  -webkit-mask:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent);
-  mask:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent);
-}
-.title-marquee-track{
-  display:flex; align-items:center; flex-shrink:0; white-space:nowrap;
-  gap:clamp(30px,4vw,70px); padding-right:clamp(30px,4vw,70px);
-  animation:titleMarqueeFlow 84s linear infinite;
-}
-.title-marquee-track span{
-  font-family:var(--display); font-weight:600; line-height:1.1;
-  font-size:clamp(30px,3vw + 3vh,55px); letter-spacing:-.005em;
-  flex-shrink:0; cursor:default;
-  background-image:linear-gradient(90deg,rgba(23,19,16,.22),rgba(23,19,16,.22));
-  background-size:100% 100%; background-repeat:no-repeat;
-  -webkit-background-clip:text; background-clip:text;
-  -webkit-text-fill-color:transparent; color:transparent;
-}
-.title-marquee-track span:hover{
-  background-image:linear-gradient(100deg,#171310 0%,#171310 40%,#ffc70d 46%,#ff6b21 50%,#e62e61 54%,#171310 60%,#171310 100%);
-  background-size:250% 100%;
-  animation:titleMarqueeSweep 3.4s linear infinite;
-}
-@keyframes titleMarqueeFlow{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
-@keyframes titleMarqueeSweep{ 0%{ background-position:100% 0; } 100%{ background-position:0 0; } }
-.cat-head-marquee{ display:block; }
-@media (max-width:720px){
-  .title-marquee{ margin-left:-22px; margin-right:-22px; }
-  .title-marquee-track span{ font-size:34px; }
-}
-/* Touch devices get no hover, so lift the resting fill to stay legible. */
-@media (hover:none){
-  .title-marquee-track span{ background-image:linear-gradient(90deg,rgba(23,19,16,.85),rgba(23,19,16,.85)); }
-}
-/* Static row rather than siriai's wrapped block: these pages are fixed-height
-   scroll-snap panels, so wrapping 19 brands would blow out the layout. */
-@media (prefers-reduced-motion:reduce){
-  .title-marquee-track{ animation:none; }
-  .title-marquee-track span:hover{ animation:none; background-image:linear-gradient(90deg,#171310,#171310); }
-}
 /* Instagram-profile-homage hero (page 01) */
 .ig-page{ justify-content:flex-start; }
 .ig-topbar{
