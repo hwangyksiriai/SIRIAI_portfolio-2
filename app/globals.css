@@ -80,9 +80,9 @@ body{
 .wordmark .mark{
   width:20px; height:20px; border-radius:4px; overflow:hidden; display:flex; align-items:center; justify-content:center;
 }
-.wordmark .mark img{ width:100%; height:100%; object-fit:cover; }
+.wordmark .mark img{ width:100%; height:100%; object-fit:cover; filter:invert(1); }
 .wordmark .word{ font-family:var(--display); font-weight:600; font-size:16px; letter-spacing:.02em; color:var(--ink); }
-.wordmark .word-logo{ height:18px; width:auto; display:block; }
+.wordmark .word-logo{ height:18px; width:auto; display:block; filter:invert(1); }
 
 .cat-nav-links{ display:flex; align-items:center; justify-content:space-between; gap:24px; overflow-x:auto; scrollbar-width:none; flex:1; }
 .cat-nav-links::-webkit-scrollbar{ display:none; }
@@ -283,6 +283,67 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
   .title-marquee-track{ animation:none; }
   .title-marquee-track span:hover{ animation:none; background-image:linear-gradient(90deg,#171310,#171310); }
 }
+/* Instagram-profile-homage hero (page 01) */
+.ig-page{ justify-content:flex-start; padding-top:calc(var(--pad-y) + 24px); }
+.ig-topbar{
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding-bottom:28px; margin-bottom:44px; border-bottom:1px solid var(--line);
+}
+.ig-topbar-logo{ font-family:var(--display); font-weight:600; font-size:26px; letter-spacing:-.01em; color:var(--ink); }
+.ig-topbar-actions{ display:flex; align-items:center; gap:20px; }
+.ig-btn-fill{
+  font-family:var(--body); font-weight:600; font-size:14px; color:#fff; background:var(--accent);
+  padding:9px 20px; border-radius:8px; text-decoration:none; transition:filter .15s ease;
+}
+.ig-btn-fill:hover{ filter:brightness(1.08); }
+.ig-btn-link{ font-family:var(--body); font-weight:600; font-size:14px; color:var(--ink); text-decoration:none; }
+.ig-btn-link:hover{ color:var(--accent); }
+@media (max-width:720px){
+  .ig-topbar{ padding-bottom:20px; margin-bottom:32px; }
+  .ig-topbar-logo{ font-size:20px; }
+}
+
+.ig-profile{ display:flex; align-items:center; gap:56px; flex-wrap:wrap; }
+.ig-avatar{
+  flex:0 0 auto; width:150px; height:150px; border-radius:50%; overflow:hidden;
+  background:var(--ink); display:flex; align-items:center; justify-content:center;
+  border:1px solid var(--line);
+}
+.ig-avatar img{ width:64%; height:64%; object-fit:contain; }
+.ig-profile-info{ flex:1 1 320px; min-width:0; }
+.ig-username{ font-family:var(--display); font-weight:600; font-size:24px; letter-spacing:0; margin:0 0 18px; color:var(--ink); }
+.ig-stats{ display:flex; gap:36px; margin-bottom:16px; font-size:15px; color:var(--ink); }
+.ig-stats strong{ font-weight:700; }
+.ig-bio-name{ font-weight:700; font-size:14px; margin:0 0 4px; color:var(--ink); }
+.ig-bio{ font-size:14px; line-height:1.6; color:var(--ink); margin:0 0 4px; }
+.ig-bio-link{ font-size:14px; font-weight:600; color:#3a6ea5; text-decoration:none; }
+.ig-bio-link:hover{ text-decoration:underline; }
+@media (max-width:720px){
+  .ig-profile{ gap:24px; }
+  .ig-avatar{ width:96px; height:96px; }
+  .ig-username{ font-size:19px; margin-bottom:12px; }
+  .ig-stats{ gap:22px; font-size:13.5px; margin-bottom:12px; }
+}
+
+.ig-highlights{
+  margin-top:56px; display:flex; gap:32px; flex-wrap:wrap; padding-top:36px; border-top:1px solid var(--line);
+}
+.ig-highlight{ display:flex; flex-direction:column; align-items:center; gap:10px; text-decoration:none; cursor:pointer; width:84px; }
+.ig-highlight-ring{
+  width:74px; height:74px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  background:var(--card); border:1px solid var(--line); transition:border-color .15s ease;
+}
+.ig-highlight-ring svg{ width:28px; height:28px; stroke:var(--muted); stroke-width:1.3; }
+.ig-highlight:hover .ig-highlight-ring{ border-color:var(--accent); background:var(--accent-soft); }
+.ig-highlight:hover .ig-highlight-ring svg{ stroke:var(--accent); }
+.ig-highlight-label{ font-family:var(--body); font-size:12.5px; font-weight:500; color:var(--ink); text-align:center; }
+@media (max-width:720px){
+  .ig-highlights{ margin-top:32px; padding-top:24px; gap:20px; }
+  .ig-highlight{ width:68px; }
+  .ig-highlight-ring{ width:60px; height:60px; }
+  .ig-highlight-ring svg{ width:22px; height:22px; }
+}
+
 .sr-only{
   position:absolute; width:1px; height:1px; padding:0; margin:-1px;
   overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;

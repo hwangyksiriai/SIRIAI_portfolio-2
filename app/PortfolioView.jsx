@@ -364,15 +364,39 @@ export default function PortfolioView({ config }) {
       </nav>
 
       <div className="deck" id="deck" ref={deckRef}>
-        {/* 01 SEGMENTS */}
-        <section className="page">
-          <h1 className="disp" style={{ fontSize: 'clamp(34px,4vw + 3vh,68px)', marginTop: '48px' }}>Our Core<br />Campaign Segments</h1>
-          <p className="lead">SIRIAI는 다양한 카테고리의 캠페인을 폭넓게 수행하며,<br className="brk" />브랜드별 니즈에 맞춘 인플루언서 협업을 설계합니다.</p>
-          <div className="seg-grid">
-            {navCategories.map((cat, i) => (
-              <a className="seg-cell" href={`#${cat.id}`} key={cat.id} onClick={(e) => { e.preventDefault(); goToCategory(cat.id); }}>
-                <SegIcon id={cat.id} />
-                <div className="name">{cat.navLabel}</div>
+        {/* 01 PROFILE (Instagram-homage hero) */}
+        <section className="page ig-page">
+          <div className="ig-topbar">
+            <span className="ig-topbar-logo">Instagram</span>
+            <div className="ig-topbar-actions">
+              <a className="ig-btn-fill" href="https://siriai-business.vercel.app/#contact" target="_blank" rel="noopener noreferrer">Contact</a>
+              <a className="ig-btn-link" href="https://siriai.co.kr" target="_blank" rel="noopener noreferrer">홈으로 이동</a>
+            </div>
+          </div>
+
+          <div className="ig-profile">
+            <div className="ig-avatar"><img src={BRAND_SYMBOL} alt="Siriai" /></div>
+            <div className="ig-profile-info">
+              <h1 className="ig-username">siriai.official</h1>
+              <div className="ig-stats">
+                <span><strong>128</strong> 팔로워</span>
+                <span><strong>42</strong> 팔로우</span>
+              </div>
+              <p className="ig-bio-name">SIRIAI — Private Influencer Curation</p>
+              <p className="ig-bio">
+                SEOUL | BRAND CURATION 🎬 ✦<br className="brk" />
+                📩 hello@siriai.co.kr<br className="brk" />
+                새로움을 설계하는 프라이빗 인플루언서 풀
+              </p>
+              <a className="ig-bio-link" href="https://siriai.co.kr" target="_blank" rel="noopener noreferrer">siriai.co.kr</a>
+            </div>
+          </div>
+
+          <div className="ig-highlights">
+            {navCategories.map((cat) => (
+              <a className="ig-highlight" href={`#${cat.id}`} key={cat.id} onClick={(e) => { e.preventDefault(); goToCategory(cat.id); }}>
+                <span className="ig-highlight-ring"><SegIcon id={cat.id} /></span>
+                <span className="ig-highlight-label">{cat.navLabel}</span>
               </a>
             ))}
           </div>
