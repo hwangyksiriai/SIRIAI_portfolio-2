@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-const BRAND_SYMBOL = '/media/brand/symbol.png';
+const BRAND_SYMBOL = '/media/brand/symbol-black.png';
+const BRAND_LOGO_WHITE = '/media/brand/logo-white.png';
 
 /* 1x1 transparent GIF. Without a poster, mobile browsers paint their own grey
    play-button placeholder until the first frame decodes; this hands them an
@@ -158,7 +159,7 @@ export default function PortfolioView({ config }) {
     <div className="app-shell">
       <aside className="app-sidebar">
         <div className="app-sidebar-logo">
-          <span className="app-sidebar-logo-mark"><img src={BRAND_SYMBOL} alt="" /></span>
+          <span className="app-sidebar-logo-mark"><img src={BRAND_LOGO_WHITE} alt="" /></span>
           SIRIAI
         </div>
 

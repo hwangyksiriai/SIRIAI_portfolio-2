@@ -187,7 +187,7 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
 .home-hero-inner{ max-width:640px; }
 .home-hero-brand{ font-family:var(--display); font-weight:700; font-size:14px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin-bottom:20px; }
 .home-hero-title{ font-family:var(--display); font-weight:700; letter-spacing:-.02em; font-size:clamp(30px,4vw,50px); line-height:1.2; color:var(--ink); margin:0 0 40px; }
-.home-hero-symbol{ width:120px; height:120px; margin:0 auto 36px; display:block; filter:invert(1) drop-shadow(0 12px 24px rgba(0,0,0,.15)); }
+.home-hero-symbol{ width:120px; height:120px; margin:0 auto 36px; display:block; filter:drop-shadow(0 12px 24px rgba(0,0,0,.15)); }
 .home-hero-sub{ font-size:15px; line-height:1.75; color:var(--muted); margin:0; }
 @media (max-width:720px){
   .home-hero{ padding:40px 24px; }
