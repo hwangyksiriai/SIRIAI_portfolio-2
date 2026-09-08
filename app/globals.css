@@ -70,14 +70,6 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
 .region-btn:hover{ color:var(--ink); }
 .region-btn.active{ color:var(--ink); border-color:var(--accent); background:var(--accent-soft); }
 
-/* Instagram-homage content-type tab row (feed / reels / refresh / tagged) */
-.cat-tabs{ display:flex; padding:18px 0; }
-.cat-tabs.cat-tabs-spaced{ margin-top:20px; }
-
-.cat-tab{ flex:1; display:flex; align-items:center; justify-content:center; color:var(--muted); }
-.cat-tab svg{ width:24px; height:24px; stroke:currentColor; }
-.cat-tab.active{ color:var(--ink); }
-
 .clip-grid{ margin-top:36px; display:grid; grid-template-columns:repeat(6,1fr); grid-auto-rows:64px; gap:var(--sp-md); flex:1; min-height:0; }
 @media (max-width:900px){ .clip-grid{ grid-template-columns:repeat(2,1fr); grid-auto-rows:minmax(120px,auto); flex:none; min-height:auto; } }
 
@@ -162,7 +154,10 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
 .ig-highlights{
   margin-top:56px; display:flex; gap:32px; flex-wrap:wrap; padding-top:36px; border-top:1px solid var(--line);
 }
-.ig-highlight{ display:flex; flex-direction:column; align-items:center; gap:10px; text-decoration:none; cursor:pointer; width:84px; }
+.ig-highlight{
+  display:flex; flex-direction:column; align-items:center; gap:10px; width:84px;
+  background:none; border:none; padding:0; font-family:inherit; text-decoration:none; cursor:pointer;
+}
 .ig-highlight-ring{
   width:78px; height:78px; border-radius:50%; padding:3px; box-sizing:border-box;
   display:flex; align-items:center; justify-content:center;
@@ -188,4 +183,38 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
 .sr-only{
   position:absolute; width:1px; height:1px; padding:0; margin:-1px;
   overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+}
+
+/* Highlight tap opens this as a story-style panel that slides in from the
+   right, instead of jumping the whole page to that category's section. */
+.story-overlay{
+  position:fixed; inset:0; z-index:50; background:rgba(23,19,16,.4);
+  display:flex; justify-content:flex-end;
+  animation:storyFade .2s ease;
+}
+.story-panel{
+  width:min(760px,100vw); height:100%; background:var(--bg);
+  overflow-y:auto; -webkit-overflow-scrolling:touch;
+  box-shadow:-24px 0 60px -24px rgba(0,0,0,.35);
+  animation:storySlideIn .32s cubic-bezier(.16,1,.3,1);
+}
+@keyframes storyFade{ from{ opacity:0; } to{ opacity:1; } }
+@keyframes storySlideIn{ from{ transform:translateX(100%); } to{ transform:translateX(0); } }
+
+.story-panel-head{
+  position:sticky; top:0; z-index:2; display:flex; align-items:center; justify-content:space-between;
+  padding:20px 24px; background:var(--bg); border-bottom:1px solid var(--line);
+}
+.story-panel-title{ font-family:var(--display); font-weight:600; font-size:17px; color:var(--ink); }
+.story-close{
+  width:32px; height:32px; border-radius:50%; border:1px solid var(--line); background:none;
+  color:var(--ink); font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:background .15s ease;
+}
+.story-close:hover{ background:var(--card); }
+
+.page.page-overlay{ padding:24px 24px 60px; border-bottom:none; max-width:none; }
+@media (max-width:720px){
+  .story-panel{ width:100vw; }
+  .page.page-overlay{ padding:20px 16px 48px; }
 }

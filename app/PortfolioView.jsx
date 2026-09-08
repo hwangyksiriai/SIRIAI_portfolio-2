@@ -64,29 +64,6 @@ function Clip({ src, landscape }) {
   );
 }
 
-/* Instagram-homage content-type tabs shown above each category's clips.
-   Every category here is video, so Reels is always the active tab (drawn as
-   a solid badge, matching Instagram's filled state); the rest are
-   decorative, matching the real profile tab row. */
-function ContentTypeTabs({ className }) {
-  return (
-    <div className={'cat-tabs' + (className ? ' ' + className : '')}>
-      <span className="cat-tab" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18M15 3v18M3 9h18M3 15h18" /></svg>
-      </span>
-      <span className="cat-tab active">
-        <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="6" fill="currentColor" /><path d="M10 8l6 4-6 4V8Z" fill="var(--bg)" /></svg>
-      </span>
-      <span className="cat-tab" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6"><path d="M21 12a9 9 0 1 1-3-6.7" /><path d="M21 3v6h-6" /></svg>
-      </span>
-      <span className="cat-tab" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6"><rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="12" cy="10" r="3" /><path d="M7 17c0-2.8 2.2-5 5-5s5 2.2 5 5" /></svg>
-      </span>
-    </div>
-  );
-}
-
 function RegionToggle({ regions, active, onChange }) {
   return (
     <div className="region-toggle">
@@ -104,7 +81,7 @@ function RegionToggle({ regions, active, onChange }) {
   );
 }
 
-function CategorySection({ cat }) {
+function CategorySection({ cat, overlay }) {
   const hasRegions = Array.isArray(cat.regions) && cat.regions.length > 0;
   const [activeRegion, setActiveRegion] = useState(hasRegions ? cat.regions[0].key : null);
   const clips = hasRegions
@@ -112,11 +89,10 @@ function CategorySection({ cat }) {
     : (cat.clips || []);
 
   return (
-    <section className="page" id={cat.id}>
+    <section className={'page' + (overlay ? ' page-overlay' : '')} id={overlay ? undefined : cat.id}>
       {hasRegions && (
         <RegionToggle regions={cat.regions} active={activeRegion} onChange={setActiveRegion} />
       )}
-      <ContentTypeTabs />
       <div className="clip-grid">
         {cat.layout === 'travel' ? (
           <div className="travel-grid">
@@ -147,11 +123,21 @@ function CategorySection({ cat }) {
 export default function PortfolioView({ config }) {
   const categories = config.categories;
   const navCategories = categories.filter((cat) => !cat.hideFromNav);
+  const [storyCatId, setStoryCatId] = useState(null);
+  const storyCat = categories.find((cat) => cat.id === storyCatId) || null;
 
-  function goToCategory(id) {
-    const target = document.getElementById(id);
-    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
+  useEffect(() => {
+    if (!storyCatId) return;
+    document.body.style.overflow = 'hidden';
+    function onKeydown(e) {
+      if (e.key === 'Escape') setStoryCatId(null);
+    }
+    window.addEventListener('keydown', onKeydown);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', onKeydown);
+    };
+  }, [storyCatId]);
 
   return (
     <>
@@ -188,24 +174,36 @@ export default function PortfolioView({ config }) {
 
           <div className="ig-highlights">
             {navCategories.map((cat) => (
-              <a className="ig-highlight" href={`#${cat.id}`} key={cat.id} onClick={(e) => { e.preventDefault(); goToCategory(cat.id); }}>
+              <button type="button" className="ig-highlight" key={cat.id} onClick={() => setStoryCatId(cat.id)}>
                 <span className="ig-highlight-ring">
                   <span className="ig-highlight-circle">
                     {cat.highlightImage ? <img src={cat.highlightImage} alt="" /> : <SegIcon id={cat.id} />}
                   </span>
                 </span>
                 <span className="ig-highlight-label">{cat.navLabel}</span>
-              </a>
+              </button>
             ))}
           </div>
-
-          <ContentTypeTabs className="cat-tabs-spaced" />
         </section>
 
         {categories.map((cat) => (
           <CategorySection cat={cat} key={cat.id} />
         ))}
       </div>
+
+      {storyCat && (
+        <div className="story-overlay" onClick={() => setStoryCatId(null)}>
+          <div className="story-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="story-panel-head">
+              <span className="story-panel-title">{storyCat.navLabel}</span>
+              <button type="button" className="story-close" onClick={() => setStoryCatId(null)} aria-label="닫기">✕</button>
+            </div>
+            <div className="story-panel-scroll">
+              <CategorySection cat={storyCat} overlay />
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
