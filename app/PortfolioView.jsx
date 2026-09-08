@@ -10,7 +10,7 @@ const BRAND_SYMBOL = '/media/brand/symbol.png';
 const BLANK_POSTER =
   'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
-function Clip({ src, landscape }) {
+function Clip({ src, landscape, badge }) {
   const cls = 'clip' + (landscape ? ' landscape' : '') + (src ? '' : ' empty');
   const ref = useRef(null);
   const videoRef = useRef(null);
@@ -41,6 +41,7 @@ function Clip({ src, landscape }) {
 
   return (
     <div className={cls} ref={ref}>
+      {badge && <span className="clip-badge">{badge}</span>}
       {src ? (
         visible && (
           <video
@@ -64,35 +65,22 @@ function Clip({ src, landscape }) {
   );
 }
 
-function RegionToggle({ regions, active, onChange }) {
-  return (
-    <div className="region-toggle">
-      {regions.map((r) => (
-        <button
-          key={r.key}
-          type="button"
-          className={'region-btn' + (r.key === active ? ' active' : '')}
-          onClick={() => onChange(r.key)}
-        >
-          {r.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
+/* clips may be plain src strings or { src, badge } when a region label
+   needs to ride along (e.g. combined 국내/해외 feeds). */
 function ClipGrid({ layout, clips }) {
+  const items = clips.map((c) => (typeof c === 'string' ? { src: c } : c));
+
   return (
     <div className="clip-grid">
       {layout === 'travel' ? (
         <div className="travel-grid">
           {[0, 1].map((colIndex) => {
-            const half = Math.ceil(clips.length / 2);
-            const colClips = colIndex === 0 ? clips.slice(0, half) : clips.slice(half);
+            const half = Math.ceil(items.length / 2);
+            const colItems = colIndex === 0 ? items.slice(0, half) : items.slice(half);
             return (
               <div className="travel-col" key={colIndex}>
-                {(colClips.length ? colClips : [null]).map((src, i) => (
-                  <Clip key={i} src={src} landscape />
+                {(colItems.length ? colItems : [{}]).map((item, i) => (
+                  <Clip key={i} src={item.src} badge={item.badge} landscape />
                 ))}
               </div>
             );
@@ -100,8 +88,8 @@ function ClipGrid({ layout, clips }) {
         </div>
       ) : (
         <div className="reel-strip">
-          {(clips.length ? clips : [null]).map((src, i) => (
-            <Clip key={i} src={src} />
+          {(items.length ? items : [{}]).map((item, i) => (
+            <Clip key={i} src={item.src} badge={item.badge} />
           ))}
         </div>
       )}
@@ -119,17 +107,13 @@ function continuationsFor(categories, id) {
 
 function CategoryFeed({ cat, categories }) {
   const hasRegions = Array.isArray(cat.regions) && cat.regions.length > 0;
-  const [activeRegion, setActiveRegion] = useState(hasRegions ? cat.regions[0].key : null);
   const clips = hasRegions
-    ? (cat.regions.find((r) => r.key === activeRegion)?.clips || [])
+    ? cat.regions.flatMap((r) => r.clips.map((src) => ({ src, badge: r.label })))
     : (cat.clips || []);
   const continuations = continuationsFor(categories, cat.id);
 
   return (
     <div className="cat-feed">
-      {hasRegions && (
-        <RegionToggle regions={cat.regions} active={activeRegion} onChange={setActiveRegion} />
-      )}
       <ClipGrid layout={cat.layout} clips={clips} />
       {continuations.map((c) => (
         <ClipGrid key={c.id} layout={c.layout} clips={c.clips} />
@@ -167,6 +151,10 @@ export default function PortfolioView({ config }) {
   const navCategories = categories.filter((cat) => !cat.hideFromNav);
   const [view, setView] = useState('home'); // 'home' | 'search' | a category id
   const activeCategory = categories.find((cat) => cat.id === view) || null;
+  const [query, setQuery] = useState('');
+  const searchResults = navCategories.filter((cat) =>
+    cat.navLabel.toLowerCase().includes(query.trim().toLowerCase())
+  );
   const mainRef = useRef(null);
 
   function selectView(v) {
@@ -232,6 +220,31 @@ export default function PortfolioView({ config }) {
             </div>
 
             <ProfileCard config={config} />
+
+            <div className="search-box">
+              <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+              <input
+                type="text"
+                className="search-input"
+                placeholder="캠페인 카테고리 검색"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                autoFocus
+              />
+            </div>
+
+            {searchResults.length > 0 ? (
+              <div className="search-results">
+                {searchResults.map((cat) => (
+                  <button type="button" className="search-result" key={cat.id} onClick={() => selectView(cat.id)}>
+                    <span className="search-result-icon"><SegIcon id={cat.id} /></span>
+                    <span className="search-result-label">{cat.navLabel}</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="search-empty">&ldquo;{query}&rdquo;에 대한 검색 결과가 없습니다.</p>
+            )}
           </div>
         ) : (
           <div className="home-hero" key="home">
