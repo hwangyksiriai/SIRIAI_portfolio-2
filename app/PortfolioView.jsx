@@ -64,128 +64,6 @@ function Clip({ src, landscape }) {
   );
 }
 
-/* Brands shown in place of a category's repeated headings, keyed by the id of
-   the category's first page. Adding an entry here is all it takes to give
-   another category's continuation pages the band.
-
-   One list must render wider than the page (max 2400px) on its own: the track
-   holds exactly two copies, so at the wrap point a set narrower than the page
-   would leave a visible gap on the right. Fashion's eight names are the
-   shortest list and still measure ~2860px, so there is room to spare. */
-const MARQUEE_BRANDS = {
-  'cat-beauty': [
-    'Oddtype', 'INNISFREE', 'COSRX', 'TOCOBO', 'Musinsa standard beauty',
-    'Quadthera', 'forhz', 'OFFLOW', 'KEEPINTOUCH', 'Ohayoh', 'No The Love',
-    'Lusom', 'Yadah', 'Pretty Actually', 'if:fu', 'Keybo', 'Skinsignal',
-    'wizzy', 'Finv',
-  ],
-  'cat-fashion': [
-    '8division', 'INNIR', 'OJOS', 'toomuchtax', 'BLUE SUNSET',
-    'THE CACTUS HOTEL', 'Lumiere Blanche', 'Velvaskin',
-  ],
-};
-
-/* Continuation pages are "<first page id>-<n>", e.g. cat-fashion-2. */
-function marqueeBrandsFor(id) {
-  const m = /^(.*)-\d+$/.exec(id);
-  return m ? MARQUEE_BRANDS[m[1]] : undefined;
-}
-
-const MARQUEE_SPEED = 92; // px/sec, matching the siriai.co.kr band
-
-/* Right-to-left brand band. The track renders the list twice and JS drives the
-   transform: under will-change:transform a track this wide gets promoted to one
-   compositor layer, exceeds the max GPU texture size and the CSS animation
-   silently freezes. Driving translateX from rAF keeps it sub-pixel smooth, and
-   the wrap at scrollWidth/2 is seamless because CSS keeps padding-right equal
-   to gap. Pauses off-screen and defers to prefers-reduced-motion. */
-function TitleMarquee({ items }) {
-  const marqRef = useRef(null);
-  const trackRef = useRef(null);
-
-  useEffect(() => {
-    const marq = marqRef.current;
-    const track = trackRef.current;
-    if (!marq || !track) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-    track.style.animation = 'none'; // JS owns the transform from here
-    track.style.willChange = 'auto'; // no forced giant layer -> no texture drop
-
-    let half = 0;
-    let last = 0;
-    let x = 0;
-    let running = false;
-    let raf = 0;
-    let alive = true;
-
-    const measure = () => { half = track.scrollWidth / 2; };
-    const inView = () => {
-      const r = marq.getBoundingClientRect();
-      return r.bottom > -240 && r.top < window.innerHeight + 240;
-    };
-
-    function step(ts) {
-      if (!alive) return;
-      if (!inView()) { running = false; return; }
-      raf = requestAnimationFrame(step);
-      if (!last) last = ts;
-      let dt = (ts - last) / 1000;
-      last = ts;
-      if (dt > 0.1) dt = 0.1; // clamp after a tab-away
-      if (!half) measure();
-      x -= MARQUEE_SPEED * dt; // float, so motion stays sub-pixel
-      if (half && x <= -half) x += half; // seamless wrap at one full set
-      track.style.transform = 'translateX(' + x.toFixed(2) + 'px)';
-    }
-
-    function start() {
-      if (running || !alive || !inView()) return;
-      running = true;
-      last = 0;
-      raf = requestAnimationFrame(step);
-    }
-
-    function onResize() { measure(); start(); }
-
-    measure();
-    start();
-
-    // The deck scrolls these pages into view, not the window.
-    const scroller = marq.closest('.deck');
-    window.addEventListener('resize', onResize, { passive: true });
-    window.addEventListener('scroll', start, { passive: true });
-    if (scroller) scroller.addEventListener('scroll', start, { passive: true });
-
-    return () => {
-      alive = false;
-      cancelAnimationFrame(raf);
-      window.removeEventListener('resize', onResize);
-      window.removeEventListener('scroll', start);
-      if (scroller) scroller.removeEventListener('scroll', start);
-    };
-  }, [items]);
-
-  return (
-    <div className="title-marquee" ref={marqRef}>
-      <div className="title-marquee-track" ref={trackRef} aria-hidden="true">
-        {items.map((b, i) => <span key={'a' + i}>{b}</span>)}
-        {items.map((b, i) => <span key={'b' + i}>{b}</span>)}
-      </div>
-    </div>
-  );
-}
-
-function IdxTag({ n, label }) {
-  return (
-    <div className="idx-tag">
-      {n != null && <span className="accent">{String(n).padStart(2, '0')}</span>}
-      {n != null && <span className="rule"></span>}
-      <span>{label}</span>
-    </div>
-  );
-}
-
 function RegionToggle({ regions, active, onChange }) {
   return (
     <div className="region-toggle">
@@ -203,40 +81,17 @@ function RegionToggle({ regions, active, onChange }) {
   );
 }
 
-function CategorySection({ cat, idx, overlay }) {
+function CategorySection({ cat, overlay }) {
   const hasRegions = Array.isArray(cat.regions) && cat.regions.length > 0;
   const [activeRegion, setActiveRegion] = useState(hasRegions ? cat.regions[0].key : null);
   const clips = hasRegions
     ? (cat.regions.find((r) => r.key === activeRegion)?.clips || [])
     : (cat.clips || []);
-  // The continuation pages repeat their parent's title, so they run the brand
-  // band instead; the first page of the category still names itself.
-  const marqueeBrands = marqueeBrandsFor(cat.id);
-  const marquee = !!marqueeBrands;
 
   return (
     <section className={'page' + (overlay ? ' page-overlay' : '')} id={overlay ? undefined : cat.id}>
-      {overlay ? (
-        hasRegions && (
-          <RegionToggle regions={cat.regions} active={activeRegion} onChange={setActiveRegion} />
-        )
-      ) : (
-        <>
-          <IdxTag n={idx} label={(cat.tag || cat.navLabel).toUpperCase()} />
-          <div className={'cat-head' + (marquee ? ' cat-head-marquee' : '')}>
-            {marquee ? (
-              <>
-                <h1 className="disp sr-only">{cat.title}</h1>
-                <TitleMarquee items={marqueeBrands} />
-              </>
-            ) : (
-              <h1 className="disp">{cat.title}</h1>
-            )}
-            {hasRegions && (
-              <RegionToggle regions={cat.regions} active={activeRegion} onChange={setActiveRegion} />
-            )}
-          </div>
-        </>
+      {hasRegions && (
+        <RegionToggle regions={cat.regions} active={activeRegion} onChange={setActiveRegion} />
       )}
       <div className="clip-grid">
         {cat.layout === 'travel' ? (
@@ -266,7 +121,6 @@ function CategorySection({ cat, idx, overlay }) {
 }
 
 export default function PortfolioView({ config }) {
-  const deckRef = useRef(null);
   const categories = config.categories;
   const navCategories = categories.filter((cat) => !cat.hideFromNav);
   const [storyCatId, setStoryCatId] = useState(null);
@@ -285,62 +139,9 @@ export default function PortfolioView({ config }) {
     };
   }, [storyCatId]);
 
-  function collectPages() {
-    if (!deckRef.current) return [];
-    return Array.from(deckRef.current.querySelectorAll('.page'));
-  }
-
-  function currentIndex() {
-    const pages = collectPages();
-    const y = deckRef.current.scrollTop;
-    let idx = 0;
-    let best = Infinity;
-    pages.forEach((p, i) => {
-      const d = Math.abs(p.offsetTop - y);
-      if (d < best) { best = d; idx = i; }
-    });
-    return idx;
-  }
-
-  useEffect(() => {
-    const deck = deckRef.current;
-    if (!deck) return;
-
-    function onKeydown(e) {
-      if (storyCatId) return;
-      if (!['ArrowDown', 'ArrowUp'].includes(e.key)) return;
-      e.preventDefault();
-      const pages = collectPages();
-      const i = currentIndex();
-      const next = e.key === 'ArrowDown' ? Math.min(i + 1, pages.length - 1) : Math.max(i - 1, 0);
-      pages[next].scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    let wheelLocked = false;
-    function onWheel(e) {
-      if (storyCatId) return;
-      e.preventDefault();
-      if (wheelLocked) return;
-      const pages = collectPages();
-      const i = currentIndex();
-      const next = e.deltaY > 0 ? Math.min(i + 1, pages.length - 1) : Math.max(i - 1, 0);
-      if (next === i) return;
-      wheelLocked = true;
-      pages[next].scrollIntoView({ behavior: 'smooth', block: 'start' });
-      setTimeout(() => { wheelLocked = false; }, 700);
-    }
-
-    deck.addEventListener('wheel', onWheel, { passive: false });
-    window.addEventListener('keydown', onKeydown);
-    return () => {
-      deck.removeEventListener('wheel', onWheel);
-      window.removeEventListener('keydown', onKeydown);
-    };
-  }, [storyCatId]);
-
   return (
     <>
-      <div className="deck" id="deck" ref={deckRef}>
+      <div className="deck" id="deck">
         {/* 01 PROFILE (Instagram-homage hero) */}
         <section className="page ig-page">
           <div className="ig-topbar">
@@ -385,8 +186,8 @@ export default function PortfolioView({ config }) {
           </div>
         </section>
 
-        {categories.map((cat, i) => (
-          <CategorySection cat={cat} idx={1 + i} key={cat.id} />
+        {categories.map((cat) => (
+          <CategorySection cat={cat} key={cat.id} />
         ))}
       </div>
 
