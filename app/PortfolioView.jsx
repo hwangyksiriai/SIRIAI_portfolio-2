@@ -81,41 +81,59 @@ function RegionToggle({ regions, active, onChange }) {
   );
 }
 
-function CategorySection({ cat, overlay }) {
+function ClipGrid({ layout, clips }) {
+  return (
+    <div className="clip-grid">
+      {layout === 'travel' ? (
+        <div className="travel-grid">
+          {[0, 1].map((colIndex) => {
+            const half = Math.ceil(clips.length / 2);
+            const colClips = colIndex === 0 ? clips.slice(0, half) : clips.slice(half);
+            return (
+              <div className="travel-col" key={colIndex}>
+                {(colClips.length ? colClips : [null]).map((src, i) => (
+                  <Clip key={i} src={src} landscape />
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="reel-strip">
+          {(clips.length ? clips : [null]).map((src, i) => (
+            <Clip key={i} src={src} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* Continuation pages hold overflow clips for the same nav category, e.g.
+   cat-beauty-2..9 for cat-beauty. Scrolling the story panel for "Beauty"
+   should surface all of them, one grid after another. */
+function continuationsFor(categories, id) {
+  const re = new RegExp('^' + id + '-\\d+$');
+  return categories.filter((c) => re.test(c.id) && (c.clips || []).length > 0);
+}
+
+function CategorySection({ cat, categories, overlay }) {
   const hasRegions = Array.isArray(cat.regions) && cat.regions.length > 0;
   const [activeRegion, setActiveRegion] = useState(hasRegions ? cat.regions[0].key : null);
   const clips = hasRegions
     ? (cat.regions.find((r) => r.key === activeRegion)?.clips || [])
     : (cat.clips || []);
+  const continuations = categories ? continuationsFor(categories, cat.id) : [];
 
   return (
     <section className={'page' + (overlay ? ' page-overlay' : '')} id={overlay ? undefined : cat.id}>
       {hasRegions && (
         <RegionToggle regions={cat.regions} active={activeRegion} onChange={setActiveRegion} />
       )}
-      <div className="clip-grid">
-        {cat.layout === 'travel' ? (
-          <div className="travel-grid">
-            {[0, 1].map((colIndex) => {
-              const half = Math.ceil(clips.length / 2);
-              const colClips = colIndex === 0 ? clips.slice(0, half) : clips.slice(half);
-              return (
-                <div className="travel-col" key={colIndex}>
-                  {(colClips.length ? colClips : [null]).map((src, i) => (
-                    <Clip key={i} src={src} landscape />
-                  ))}
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="reel-strip">
-            {(clips.length ? clips : [null]).map((src, i) => (
-              <Clip key={i} src={src} />
-            ))}
-          </div>
-        )}
-      </div>
+      <ClipGrid layout={cat.layout} clips={clips} />
+      {continuations.map((c) => (
+        <ClipGrid key={c.id} layout={c.layout} clips={c.clips} />
+      ))}
     </section>
   );
 }
@@ -185,10 +203,6 @@ export default function PortfolioView({ config }) {
             ))}
           </div>
         </section>
-
-        {categories.map((cat) => (
-          <CategorySection cat={cat} key={cat.id} />
-        ))}
       </div>
 
       {storyCat && (
@@ -199,7 +213,7 @@ export default function PortfolioView({ config }) {
               <button type="button" className="story-close" onClick={() => setStoryCatId(null)} aria-label="닫기">✕</button>
             </div>
             <div className="story-panel-scroll">
-              <CategorySection cat={storyCat} overlay />
+              <CategorySection cat={storyCat} categories={categories} overlay />
             </div>
           </div>
         </div>
