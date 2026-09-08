@@ -1,0 +1,318 @@
+{
+  "categories": [
+    {
+      "id": "cat-beauty",
+      "navLabel": "Beauty",
+      "tag": "Reels",
+      "title": "Beauty",
+      "layout": "reel",
+      "regions": [
+        {
+          "key": "domestic",
+          "label": "국내",
+          "clips": [
+            "/media/beauty/lee-jerin.mp4",
+            "/media/beauty/yoon-hyerin.mp4",
+            "/media/beauty/kim-hani.mp4",
+            "/media/beauty/hyeonmyeong-2.mp4"
+          ]
+        },
+        {
+          "key": "abroad",
+          "label": "해외",
+          "clips": [
+            "/media/beauty/abroad-1.mp4",
+            "/media/beauty/abroad-2.mp4",
+            "/media/beauty/abroad-3.mp4",
+            "/media/beauty/abroad-4.mp4"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cat-beauty-9",
+      "navLabel": "Beauty",
+      "tag": "Reels",
+      "title": "Beauty",
+      "layout": "reel",
+      "hideFromNav": true,
+      "clips": []
+    },
+    {
+      "id": "cat-beauty-3",
+      "navLabel": "Beauty",
+      "tag": "Reels",
+      "title": "Beauty",
+      "layout": "reel",
+      "hideFromNav": true,
+      "clips": [
+        "/media/beauty/beauty-clip-05.mp4",
+        "/media/beauty/beauty-clip-06.mp4",
+        "/media/beauty/beauty-clip-07.mp4",
+        "/media/beauty/beauty-clip-08.mp4"
+      ]
+    },
+    {
+      "id": "cat-beauty-4",
+      "navLabel": "Beauty",
+      "tag": "Reels",
+      "title": "Beauty",
+      "layout": "reel",
+      "hideFromNav": true,
+      "clips": [
+        "/media/beauty/beauty-clip-09.mp4",
+        "/media/beauty/beauty-clip-10.mp4",
+        "/media/beauty/beauty-clip-11.mp4",
+        "/media/beauty/beauty-clip-12.mp4"
+      ]
+    },
+    {
+      "id": "cat-beauty-5",
+      "navLabel": "Beauty",
+      "tag": "Reels",
+      "title": "Beauty",
+      "layout": "reel",
+      "hideFromNav": true,
+      "clips": [
+        "/media/beauty/kim-minji.mp4",
+        "/media/beauty/park-minseo.mp4",
+        "/media/beauty/shin-jieun.mp4",
+        "/media/beauty/jang-sohee.mp4"
+      ]
+    },
+    {
+      "id": "cat-beauty-2",
+      "navLabel": "Beauty",
+      "tag": "Reels",
+      "title": "Beauty",
+      "layout": "reel",
+      "hideFromNav": true,
+      "clips": [
+        "/media/beauty/beauty-clip-01.mp4",
+        "/media/beauty/beauty-clip-02.mp4",
+        "/media/beauty/beauty-clip-03.mp4",
+        "/media/beauty/beauty-clip-04.mp4"
+      ]
+    },
+    {
+      "id": "cat-beauty-6",
+      "navLabel": "Beauty",
+      "tag": "Reels",
+      "title": "Beauty",
+      "layout": "reel",
+      "hideFromNav": true,
+      "clips": []
+    },
+    {
+      "id": "cat-beauty-7",
+      "navLabel": "Beauty",
+      "tag": "Reels",
+      "title": "Beauty",
+      "layout": "reel",
+      "hideFromNav": true,
+      "clips": []
+    },
+    {
+      "id": "cat-beauty-8",
+      "navLabel": "Beauty",
+      "tag": "Reels",
+      "title": "Beauty",
+      "layout": "reel",
+      "hideFromNav": true,
+      "clips": []
+    },
+    {
+      "id": "cat-fashion",
+      "navLabel": "Fashion",
+      "tag": "Reels",
+      "title": "Fashion",
+      "layout": "reel",
+      "regions": [
+        {
+          "key": "domestic",
+          "label": "국내",
+          "clips": [
+            "/media/fashion/domestic/rooab.mp4",
+            "/media/fashion/domestic/kim-minji.mp4",
+            "/media/fashion/domestic/park-nayeon.mp4",
+            "/media/fashion/domestic/dear.mp4"
+          ]
+        },
+        {
+          "key": "abroad",
+          "label": "해외",
+          "clips": [
+            "/media/fashion/abroad/greencontinue-1.mp4",
+            "/media/fashion/abroad/greencontinue-2.mp4",
+            "/media/fashion/abroad/greencontinue-3.mp4",
+            "/media/fashion/abroad/greencontinue-4.mp4"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cat-fashion-2",
+      "navLabel": "Fashion",
+      "tag": "Reels",
+      "title": "Fashion",
+      "layout": "reel",
+      "hideFromNav": true,
+      "clips": []
+    },
+    {
+      "id": "cat-fashion-3",
+      "navLabel": "Fashion",
+      "tag": "Reels",
+      "title": "Fashion",
+      "layout": "reel",
+      "hideFromNav": true,
+      "clips": []
+    },
+    {
+      "id": "cat-living",
+      "navLabel": "Lifestyle",
+      "tag": "Reels",
+      "title": "Lifestyle",
+      "layout": "reel",
+      "clips": [
+        "/media/living-personal-care/bodywash.mp4",
+        "/media/living-personal-care/kim-sehyun.mp4",
+        "/media/living-personal-care/yoon-yeongeun.mp4",
+        "/media/living-personal-care/diffuser-2.mp4"
+      ]
+    },
+    {
+      "id": "cat-travel",
+      "navLabel": "Travel & Tourism",
+      "tag": "Youtube",
+      "title": "Travel & Tourism",
+      "layout": "travel",
+      "regions": [
+        {
+          "key": "domestic",
+          "label": "국내",
+          "clips": [
+            "/media/travel-tourism/domestic/oh-youngju.mp4",
+            "/media/travel-tourism/domestic/jongwoo-gallery.mp4",
+            "/media/travel-tourism/domestic/chaerrier.mp4",
+            "/media/travel-tourism/domestic/yekong.mp4"
+          ]
+        },
+        {
+          "key": "abroad",
+          "label": "해외",
+          "clips": [
+            "/media/travel-tourism/abroad/reichan.mp4",
+            "/media/travel-tourism/abroad/phatthararwee.mp4",
+            "/media/travel-tourism/abroad/yun-ling-he.mp4",
+            "/media/travel-tourism/abroad/kanaka.mp4"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cat-fnb",
+      "navLabel": "F&B",
+      "tag": "Reels",
+      "title": "F&B",
+      "layout": "reel",
+      "clips": [
+        "/media/fnb/life4cuts.mp4",
+        "/media/fnb/harim-nyc.mp4",
+        "/media/fnb/harim-thaifex-1.mp4",
+        "/media/fnb/harim-thaifex-2.mp4"
+      ]
+    },
+    {
+      "id": "cat-artist",
+      "navLabel": "Artist Promotion",
+      "tag": "Reels",
+      "title": "Artist Promotion",
+      "layout": "reel",
+      "regions": [
+        {
+          "key": "japan",
+          "label": "일본",
+          "clips": [
+            "/media/artist-promotion/%EC%9D%BC%EB%B3%B8/clip-1.mp4",
+            "/media/artist-promotion/%EC%9D%BC%EB%B3%B8/clip-2.mp4",
+            "/media/artist-promotion/%EC%9D%BC%EB%B3%B8/clip-3.mp4",
+            "/media/artist-promotion/%EC%9D%BC%EB%B3%B8/clip-4.mp4"
+          ]
+        },
+        {
+          "key": "southeast-asia",
+          "label": "동남아",
+          "clips": [
+            "/media/artist-promotion/%EB%8F%99%EB%82%A8%EC%95%84/clip-1.mp4",
+            "/media/artist-promotion/%EB%8F%99%EB%82%A8%EC%95%84/clip-2.mp4",
+            "/media/artist-promotion/%EB%8F%99%EB%82%A8%EC%95%84/clip-3.mp4",
+            "/media/artist-promotion/%EB%8F%99%EB%82%A8%EC%95%84/clip-4.mp4"
+          ]
+        },
+        {
+          "key": "north-america",
+          "label": "북미",
+          "clips": [
+            "/media/artist-promotion/%EB%B6%81%EB%AF%B8/clip-1.mp4",
+            "/media/artist-promotion/%EB%B6%81%EB%AF%B8/clip-2.mp4",
+            "/media/artist-promotion/%EB%B6%81%EB%AF%B8/clip-3.mp4",
+            "/media/artist-promotion/%EB%B6%81%EB%AF%B8/clip-4.mp4"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cat-celebrity",
+      "navLabel": "Celebrity & Magazine",
+      "tag": "Reels",
+      "title": "Celebrity & Magazine",
+      "layout": "reel",
+      "clips": [
+        "/media/celebrity-promotion/magazine.mp4",
+        "/media/celebrity-promotion/depenue-1.mp4",
+        "/media/celebrity-promotion/depenue-2.mp4",
+        "/media/celebrity-promotion/depenue-3.mp4"
+      ]
+    },
+    {
+      "id": "cat-health",
+      "navLabel": "Family & Kids",
+      "tag": "Reels",
+      "title": "Family & Kids",
+      "layout": "reel",
+      "clips": [
+        "/media/health-wellness/brainology.mp4",
+        "/media/health-wellness/english-routine.mp4",
+        "/media/health-wellness/clip-1.mp4",
+        "/media/health-wellness/clip-2.mp4"
+      ]
+    },
+    {
+      "id": "cat-medical",
+      "navLabel": "Medical",
+      "tag": "Reels",
+      "title": "Medical",
+      "layout": "reel",
+      "clips": [
+        "/media/medical/ID_jessica.mp4",
+        "/media/medical/kim-nahyun.mp4",
+        "/media/medical/kim-jaeeun.mp4",
+        "/media/medical/jang-geonwoo.mp4"
+      ]
+    },
+    {
+      "id": "cat-popup",
+      "navLabel": "Offline",
+      "tag": "Reels",
+      "title": "Offline",
+      "layout": "reel",
+      "clips": [
+        "/media/popup-visit/domestic/teumgyeol-estherbunny.mp4",
+        "/media/popup-visit/domestic/kim-nayoung.mp4",
+        "/media/popup-visit/domestic/tocobo.mp4",
+        "/media/popup-visit/domestic/jia.mp4"
+      ]
+    }
+  ]
+}
