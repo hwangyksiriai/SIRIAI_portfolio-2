@@ -244,8 +244,8 @@ button.cat-region-tab:hover{ color:var(--ink); }
   white-space:nowrap;
 }
 .cat-marquee-item-label{
-  font-family:var(--display); font-weight:600; font-size:22px; letter-spacing:-.01em; color:rgba(23,19,16,.28);
-  transition:color .2s ease, font-weight .2s ease, transform .2s ease; transform-origin:left center; display:inline-block;
+  font-family:var(--display); font-weight:800; font-size:22px; letter-spacing:-.01em; color:rgba(23,19,16,.32);
+  transition:color .2s ease, transform .2s ease; transform-origin:left center; display:inline-block;
 }
 .cat-marquee-item-label:hover{
   font-weight:800; transform:scale(1.12);
