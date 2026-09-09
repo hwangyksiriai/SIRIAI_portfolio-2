@@ -53,8 +53,11 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
 .seg-cell:hover svg{ stroke:var(--accent); }
 .seg-cell:hover .name{ color:var(--accent); }
 
-.clip-grid{ margin-top:36px; display:grid; grid-template-columns:repeat(6,1fr); gap:var(--sp-md); }
-@media (max-width:900px){ .clip-grid{ grid-template-columns:repeat(2,1fr); } }
+/* minmax(0,1fr) rather than 1fr: a bare 1fr track has an automatic minimum
+   size, so the video cards' intrinsic width pushes the columns wider than
+   the grid and the right-hand column gets clipped on narrow screens. */
+.clip-grid{ margin-top:36px; display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:var(--sp-md); }
+@media (max-width:900px){ .clip-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); margin-top:24px; } }
 
 .clip{ position:relative; border-radius:4px; overflow:hidden; background:var(--card); border:1px solid var(--line); }
 .clip .fill{ position:absolute; inset:0; }
@@ -71,10 +74,11 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
   padding:4px 9px; border-radius:999px;
 }
 
-.reel-strip{ grid-column:1/-1; align-self:start; display:grid; grid-template-columns:repeat(6,1fr); gap:var(--sp-md); }
+.reel-strip{ grid-column:1/-1; align-self:start; display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:var(--sp-md); }
 .reel-strip .clip{ aspect-ratio:9/16; }
-@media (max-width:1200px){ .reel-strip{ grid-template-columns:repeat(4,1fr); } }
-@media (max-width:900px){ .reel-strip{ grid-template-columns:repeat(2,1fr); } }
+@media (max-width:1200px){ .reel-strip{ grid-template-columns:repeat(4,minmax(0,1fr)); } }
+@media (max-width:900px){ .reel-strip{ grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; } }
+@media (max-width:560px){ .reel-strip{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } }
 
 .travel-grid{ grid-column:1/-1; align-self:start; display:flex; gap:var(--sp-md); justify-content:center; }
 .travel-col{ display:flex; flex-direction:column; gap:var(--sp-md); }
@@ -153,7 +157,10 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
      collapses into a compact sticky top bar: logo + a horizontally
      scrollable row of category pills, instead of a tall stacked list the
      visitor has to scroll past before seeing any content. */
-  .app-shell{ flex-direction:column; padding:8px; gap:8px; }
+  /* align-items governs the horizontal axis once the shell stacks, so the
+     desktop flex-start value sized main to its content (the very wide
+     marquee track) and clipped the video grid off the right edge. */
+  .app-shell{ flex-direction:column; align-items:stretch; padding:8px; gap:8px; }
   .app-sidebar{
     width:100%; height:auto; position:sticky; top:8px; z-index:30;
     flex-direction:row; align-items:center; padding:10px 12px; gap:10px; overflow:visible;
@@ -171,9 +178,23 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
   .app-main{ height:auto; overflow-y:visible; }
   .app-main-inner{ padding:24px 20px 150px; }
 }
-@media (max-width:480px){
+/* The contact bar is fixed over the feed, so on a phone it has to stay
+   short — a full-height three-row form would swallow a fifth of the
+   viewport and hide the videos behind it. */
+@media (max-width:900px){
+  .floating-bar{ bottom:14px; }
+  .floating-bar-form{ gap:8px; padding:10px 14px; }
+  .floating-bar-copy{ font-size:12px; line-height:1.35; }
+  .floating-bar-row{ gap:8px; }
+  .floating-bar-input{ padding:8px 12px; font-size:12.5px; }
+  .floating-bar-submit{ padding:10px 20px; font-size:14px; }
+  .floating-bar-submit-arrow{ width:15px; height:15px; }
+}
+@media (max-width:520px){
+  /* Two inputs plus the button in one row leaves the fields too narrow to
+     type in, so the button drops to its own full-width line. */
   .floating-bar-row{ flex-wrap:wrap; }
-  .floating-bar-input{ flex:1 1 auto; }
+  .floating-bar-input{ flex:1 1 40%; }
   .floating-bar-submit{ flex:1 1 100%; }
 }
 
@@ -228,10 +249,14 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
 .home-hero-title{ font-family:var(--display); font-weight:700; letter-spacing:-.02em; font-size:clamp(30px,4vw,50px); line-height:1.2; color:var(--ink); margin:0 0 40px; }
 .home-hero-symbol{ width:120px; height:120px; margin:0 auto 36px; display:block; filter:drop-shadow(0 12px 24px rgba(0,0,0,.15)); }
 .home-hero-sub{ font-size:15px; line-height:1.75; color:var(--muted); margin:0; }
-@media (max-width:720px){
-  .home-hero{ padding:40px 24px; }
+@media (max-width:900px){
+  /* min-height 100vh + the fixed contact bar left the sub copy sitting
+     underneath the bar; shorter hero and bottom room keeps it readable. */
+  .home-hero{ min-height:auto; padding:56px 24px 170px; }
+  .home-hero-brand{ height:20px; margin-bottom:16px; }
   .home-hero-symbol{ width:88px; height:88px; margin-bottom:28px; }
   .home-hero-title{ margin-bottom:28px; }
+  .home-hero-sub{ font-size:14px; line-height:1.7; }
 }
 
 .cat-feed{ margin-top:4px; }
@@ -275,6 +300,15 @@ button.cat-region-tab:hover{ color:var(--ink); }
 }
 .cat-marquee-dot{ color:var(--line); font-size:10px; }
 @keyframes catMarquee{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+@media (max-width:900px){
+  .cat-header{ margin-bottom:24px; }
+  .cat-title{ font-size:24px; margin-bottom:14px; }
+  .cat-marquee{ padding:14px 0; margin-bottom:16px; }
+  .cat-marquee-track, .cat-marquee-item{ gap:18px; }
+  .cat-marquee-item-label{ font-size:24px; }
+  .cat-region-tabs{ margin-bottom:10px; }
+  .cat-region-tab{ padding:8px 16px; font-size:12.5px; }
+}
 
 /* Decorative spotlight sweep: a second identical text track, gradient-
    colored, revealed only under a slim mask band that drifts across the bar

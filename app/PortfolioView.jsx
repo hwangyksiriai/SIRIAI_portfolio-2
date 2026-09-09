@@ -337,8 +337,9 @@ export default function PortfolioView({ config }) {
               <h1 className="home-hero-title">감각적인 비주얼을<br />만나보세요.</h1>
               <img className="home-hero-symbol" src={BRAND_SYMBOL} alt="Siriai" />
               <p className="home-hero-sub">
-                브랜드의 아이덴티티에 가장 근접한 인플루언서 큐레이션.<br className="brk" />
-                왼쪽 메뉴에서 캠페인을 둘러보세요.
+                브랜드의 아이덴티티에 가장 근접한 인플루언서 큐레이션.{' '}
+                <br className="brk" />
+                메뉴에서 캠페인을 둘러보세요.
               </p>
             </div>
           </div>
