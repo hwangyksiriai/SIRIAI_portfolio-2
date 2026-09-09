@@ -227,16 +227,17 @@ button.cat-region-tab:hover{ color:var(--ink); }
 .cat-title{ font-family:var(--display); font-weight:700; letter-spacing:-.02em; font-size:30px; color:var(--ink); margin:0 0 20px; }
 
 .cat-marquee{
-  margin:0 -4px 24px; padding:14px 0; overflow:hidden;
+  margin:0 -4px 24px; padding:28px 0; overflow:hidden; border-radius:14px;
+  background:#0a0908;
   -webkit-mask-image:linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
   mask-image:linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
 }
-.cat-marquee-track{ display:flex; gap:40px; width:max-content; animation:catMarquee 22s linear infinite; }
+.cat-marquee-track{ display:flex; gap:56px; width:max-content; animation:catMarquee 22s linear infinite; }
 .cat-marquee-item{
-  font-family:var(--display); font-weight:600; font-size:15px; letter-spacing:-.01em; color:var(--muted);
+  font-family:var(--display); font-weight:600; font-size:32px; letter-spacing:-.01em; color:#726c62;
   white-space:nowrap;
 }
-.cat-marquee-item.is-featured{ color:var(--ink); font-weight:800; }
+.cat-marquee-item.is-featured{ color:#f5f2ec; font-weight:800; }
 @keyframes catMarquee{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
 
 .sr-only{

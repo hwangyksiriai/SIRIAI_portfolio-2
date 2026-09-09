@@ -164,7 +164,8 @@ function CategoryFeed({ cat, categories }) {
   );
 }
 
-const MARQUEE_BRANDS = ['SIRIAI', 'Beauty', 'Fashion', 'Lifestyle', 'Travel & Tourism', 'Artist Promotion'];
+const MARQUEE_BRANDS = ['COSRX', 'TOCOBO', 'Musinsa standard beauty', 'Quadthera', 'forhz'];
+const MARQUEE_FEATURED = 'TOCOBO';
 
 function BrandMarquee() {
   const items = [...MARQUEE_BRANDS, ...MARQUEE_BRANDS];
@@ -172,7 +173,7 @@ function BrandMarquee() {
     <div className="cat-marquee">
       <div className="cat-marquee-track">
         {items.map((label, i) => (
-          <span key={i} className={'cat-marquee-item' + (i % MARQUEE_BRANDS.length === 0 ? ' is-featured' : '')}>
+          <span key={i} className={'cat-marquee-item' + (label === MARQUEE_FEATURED ? ' is-featured' : '')}>
             {label}
           </span>
         ))}
