@@ -64,6 +64,24 @@ export default function AdminPage() {
     });
   }
 
+  function addAbroadRegion() {
+    setConfig((prev) => {
+      const next = structuredClone(prev);
+      const cat = next.categories.find((c) => c.id === selectedId);
+      if (Array.isArray(cat.regions) && cat.regions.length > 0) {
+        cat.regions.push({ key: 'abroad', label: '해외', clips: [] });
+      } else {
+        cat.regions = [
+          { key: 'domestic', label: '국내', clips: cat.clips || [] },
+          { key: 'abroad', label: '해외', clips: [] },
+        ];
+        delete cat.clips;
+      }
+      return next;
+    });
+    setSelectedRegionKey('abroad');
+  }
+
   function updateCategoryTitle(title) {
     setConfig((prev) => {
       const next = structuredClone(prev);
@@ -370,12 +388,21 @@ export default function AdminPage() {
                   <span style={styles.regionTabCount}>{category.regions.find((x) => x.key === r.key)?.clips.length || 0}</span>
                 </button>
               ))}
+              {!category.regions.some((r) => r.key === 'abroad') && (
+                <button onClick={addAbroadRegion} style={styles.regionTabAdd}>+ 해외 추가</button>
+              )}
             </div>
             <p style={styles.hint}>
               지금 <b style={{ color: C.accent }}>{category.regions.find((r) => r.key === selectedRegionKey)?.label}</b> 탭이 선택되어 있습니다.
               여기서 영상을 추가하면 이 지역으로 들어가요. 실제 사이트에서도 이 탭 이름 그대로 국내/해외(또는 국가별) 버튼으로 보여집니다.
             </p>
           </>
+        )}
+
+        {!hasRegions && (
+          <div style={{ marginBottom: 16 }}>
+            <button onClick={addAbroadRegion} style={styles.regionTabAdd}>+ 해외 추가 (국내/해외로 나누기)</button>
+          </div>
         )}
 
         <p style={styles.hint}>카드를 드래그해서 순서를 바꾸세요. 왼쪽 페이지 목록으로 드래그하면 해당 페이지로 영상이 이동합니다. 영상을 추가하려면 아래 버튼을 누르세요.</p>
@@ -455,6 +482,7 @@ const styles = {
   regionTab: { display: 'flex', alignItems: 'center', gap: 6, background: C.card, border: `1px solid ${C.line}`, color: C.muted, padding: '9px 16px', borderRadius: 999, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
   regionTabActive: { color: '#fff', borderColor: C.accent, background: C.accent },
   regionTabCount: { fontSize: 11, opacity: .75, fontVariantNumeric: 'tabular-nums' },
+  regionTabAdd: { background: 'transparent', border: `1px dashed ${C.line}`, color: C.muted, padding: '9px 16px', borderRadius: 999, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
   hint: { fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 },
   clipGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 14 },
   clipCard: { background: C.card, border: `1px solid ${C.line}`, borderRadius: 10, overflow: 'hidden', cursor: 'grab' },
