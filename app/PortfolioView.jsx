@@ -110,15 +110,15 @@ function CategoryFeed({ cat, categories }) {
   const hasRegions = Array.isArray(cat.regions) && cat.regions.length > 0;
   const regions = hasRegions ? cat.regions.filter((r) => (r.clips || []).length > 0) : [];
   const [activeIndex, setActiveIndex] = useState(0);
-  const continuations = continuationsFor(categories, cat.id);
+  // Continuation pages (cat-beauty-2, -3, ...) hold overflow clips for the
+  // same category; folding them into one flat list lets the grid pack every
+  // clip densely instead of starting a half-empty row per page.
+  const continuationClips = continuationsFor(categories, cat.id).flatMap((c) => c.clips || []);
 
   if (!hasRegions) {
     return (
       <div className="cat-feed">
-        <ClipGrid layout={cat.layout} clips={cat.clips || []} />
-        {continuations.map((c) => (
-          <ClipGrid key={c.id} layout={c.layout} clips={c.clips} />
-        ))}
+        <ClipGrid layout={cat.layout} clips={[...(cat.clips || []), ...continuationClips]} />
       </div>
     );
   }
@@ -135,10 +135,7 @@ function CategoryFeed({ cat, categories }) {
             <span className="cat-region-tab active">{region.label}</span>
           </div>
         )}
-        <ClipGrid layout={cat.layout} clips={region ? region.clips : []} />
-        {continuations.map((c) => (
-          <ClipGrid key={c.id} layout={c.layout} clips={c.clips} />
-        ))}
+        <ClipGrid layout={cat.layout} clips={[...(region ? region.clips : []), ...continuationClips]} />
       </div>
     );
   }
@@ -161,10 +158,7 @@ function CategoryFeed({ cat, categories }) {
       </div>
 
       <div className="cat-region-panel" key={active.key}>
-        <ClipGrid layout={cat.layout} clips={active.clips} />
-        {activeIndex === 0 && continuations.map((c) => (
-          <ClipGrid key={c.id} layout={c.layout} clips={c.clips} />
-        ))}
+        <ClipGrid layout={cat.layout} clips={activeIndex === 0 ? [...active.clips, ...continuationClips] : active.clips} />
       </div>
     </div>
   );

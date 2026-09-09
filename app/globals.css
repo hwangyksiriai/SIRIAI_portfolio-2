@@ -71,8 +71,9 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
   padding:4px 9px; border-radius:999px;
 }
 
-.reel-strip{ grid-column:1/-1; align-self:start; display:grid; grid-template-columns:repeat(4,1fr); gap:var(--sp-md); }
+.reel-strip{ grid-column:1/-1; align-self:start; display:grid; grid-template-columns:repeat(6,1fr); gap:var(--sp-md); }
 .reel-strip .clip{ aspect-ratio:9/16; }
+@media (max-width:1200px){ .reel-strip{ grid-template-columns:repeat(4,1fr); } }
 @media (max-width:900px){ .reel-strip{ grid-template-columns:repeat(2,1fr); } }
 
 .travel-grid{ grid-column:1/-1; align-self:start; display:flex; gap:var(--sp-md); justify-content:center; }
