@@ -237,7 +237,12 @@ function ContactBar({ category }) {
           maxLength={50}
         />
         <button type="submit" className="floating-bar-submit" disabled={status === 'sending'}>
-          {status === 'sending' ? '접수 중...' : 'Contact'}
+          <span>{status === 'sending' ? '접수 중...' : 'Contact'}</span>
+          {status !== 'sending' && (
+            <svg className="floating-bar-submit-arrow" viewBox="0 0 24 24" fill="none" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          )}
         </button>
       </div>
       {status === 'error' && <span className="floating-bar-error">접수에 실패했어요. 다시 시도해주세요.</span>}
