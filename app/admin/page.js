@@ -355,20 +355,27 @@ export default function AdminPage() {
         </div>
 
         {hasRegions && (
-          <div style={styles.regionTabs}>
-            {category.regions.map((r) => (
-              <button
-                key={r.key}
-                onClick={() => setSelectedRegionKey(r.key)}
-                style={{
-                  ...styles.regionTab,
-                  ...(r.key === selectedRegionKey ? styles.regionTabActive : {}),
-                }}
-              >
-                {r.label}
-              </button>
-            ))}
-          </div>
+          <>
+            <div style={styles.regionTabs}>
+              {category.regions.map((r) => (
+                <button
+                  key={r.key}
+                  onClick={() => setSelectedRegionKey(r.key)}
+                  style={{
+                    ...styles.regionTab,
+                    ...(r.key === selectedRegionKey ? styles.regionTabActive : {}),
+                  }}
+                >
+                  {r.label}
+                  <span style={styles.regionTabCount}>{category.regions.find((x) => x.key === r.key)?.clips.length || 0}</span>
+                </button>
+              ))}
+            </div>
+            <p style={styles.hint}>
+              지금 <b style={{ color: C.accent }}>{category.regions.find((r) => r.key === selectedRegionKey)?.label}</b> 탭이 선택되어 있습니다.
+              여기서 영상을 추가하면 이 지역으로 들어가요. 실제 사이트에서도 이 탭 이름 그대로 국내/해외(또는 국가별) 버튼으로 보여집니다.
+            </p>
+          </>
         )}
 
         <p style={styles.hint}>카드를 드래그해서 순서를 바꾸세요. 왼쪽 페이지 목록으로 드래그하면 해당 페이지로 영상이 이동합니다. 영상을 추가하려면 아래 버튼을 누르세요.</p>
@@ -413,45 +420,53 @@ export default function AdminPage() {
   );
 }
 
+/* Palette mirrors the public site's tokens (app/globals.css :root) so the
+   admin doesn't feel like a different, unrelated tool. */
+const C = {
+  bg: '#ffffff', ink: '#171310', muted: '#6f6a5c', accent: '#fa233b',
+  line: '#e4ded2', card: '#f5f2ec', accentSoft: 'rgba(250,35,59,.14)', shellBg: '#ebeae7',
+};
+
 const styles = {
-  loading: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#948e82', background: '#0a0908', fontFamily: 'system-ui, sans-serif' },
-  wrap: { display: 'flex', minHeight: '100vh', background: '#0a0908', color: '#f2ede4', fontFamily: 'system-ui, sans-serif' },
-  sidebar: { width: 220, borderRight: '1px solid #262019', display: 'flex', flexDirection: 'column', padding: 16, gap: 4 },
-  sidebarHeader: { fontWeight: 700, fontSize: 15, marginBottom: 12 },
-  profileBox: { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 8px', marginBottom: 12, border: '1px solid #262019', borderRadius: 10 },
-  profileAvatar: { width: 44, height: 44, borderRadius: '50%', overflow: 'hidden', background: '#15130f', flex: '0 0 auto' },
+  loading: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.muted, background: C.shellBg, fontFamily: 'system-ui, sans-serif' },
+  wrap: { display: 'flex', minHeight: '100vh', alignItems: 'flex-start', gap: 10, background: C.shellBg, padding: 10, color: C.ink, fontFamily: 'system-ui, sans-serif', boxSizing: 'border-box' },
+  sidebar: { width: 240, flex: '0 0 auto', height: 'calc(100vh - 20px)', position: 'sticky', top: 10, display: 'flex', flexDirection: 'column', overflowY: 'auto', padding: 16, gap: 4, background: C.bg, borderRadius: 16 },
+  sidebarHeader: { fontWeight: 700, fontSize: 16, marginBottom: 12, padding: '0 4px' },
+  profileBox: { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 8px', marginBottom: 12, border: `1px solid ${C.line}`, borderRadius: 10, background: C.card },
+  profileAvatar: { width: 44, height: 44, borderRadius: '50%', overflow: 'hidden', background: C.line, flex: '0 0 auto' },
   profileAvatarImg: { width: '100%', height: '100%', objectFit: 'cover' },
-  profileLabel: { fontSize: 11, color: '#948e82', marginBottom: 4 },
-  smallBtn: { display: 'inline-block', fontSize: 11, color: '#f2ede4', background: '#15130f', border: '1px solid #262019', borderRadius: 6, padding: '4px 8px', cursor: 'pointer' },
-  smallRemoveBtn: { display: 'inline-block', fontSize: 11, color: '#e08a6b', background: 'transparent', border: 'none', cursor: 'pointer', marginLeft: 8, padding: 0 },
-  highlightBox: { display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', marginBottom: 16, border: '1px solid #262019', borderRadius: 10 },
-  highlightThumb: { width: 56, height: 56, borderRadius: '50%', overflow: 'hidden', background: '#15130f', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' },
-  highlightThumbEmpty: { fontSize: 10, color: '#948e82' },
-  navItem: { display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', background: 'transparent', border: '1px solid transparent', color: '#948e82', padding: '8px 10px', borderRadius: 8, cursor: 'pointer', fontSize: 13 },
-  navItemActive: { background: '#15130f', color: '#f2ede4' },
-  navItemDragOver: { borderColor: '#c98a3f', background: 'rgba(201,138,63,.14)', color: '#f2ede4' },
-  navItemIdx: { fontSize: 11, color: '#c98a3f', fontVariantNumeric: 'tabular-nums' },
-  logoutBtn: { background: 'transparent', border: '1px solid #262019', color: '#948e82', padding: '8px 10px', borderRadius: 8, cursor: 'pointer', fontSize: 12 },
-  main: { flex: 1, padding: 28, overflowY: 'auto' },
+  profileLabel: { fontSize: 11, color: C.muted, marginBottom: 4 },
+  smallBtn: { display: 'inline-block', fontSize: 11, color: C.ink, background: C.bg, border: `1px solid ${C.line}`, borderRadius: 6, padding: '4px 8px', cursor: 'pointer' },
+  smallRemoveBtn: { display: 'inline-block', fontSize: 11, color: C.accent, background: 'transparent', border: 'none', cursor: 'pointer', marginLeft: 8, padding: 0 },
+  highlightBox: { display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', marginBottom: 16, border: `1px solid ${C.line}`, borderRadius: 10, background: C.card },
+  highlightThumb: { width: 56, height: 56, borderRadius: '50%', overflow: 'hidden', background: C.line, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' },
+  highlightThumbEmpty: { fontSize: 10, color: C.muted },
+  navItem: { display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', background: 'transparent', border: '1px solid transparent', color: C.ink, padding: '9px 10px', borderRadius: 10, cursor: 'pointer', fontSize: 13.5, fontWeight: 500 },
+  navItemActive: { background: C.accentSoft, color: C.accent, fontWeight: 700 },
+  navItemDragOver: { borderColor: C.accent, background: C.accentSoft, color: C.accent },
+  navItemIdx: { fontSize: 11, color: C.accent, fontVariantNumeric: 'tabular-nums' },
+  logoutBtn: { background: 'transparent', border: `1px solid ${C.line}`, color: C.muted, padding: '9px 10px', borderRadius: 10, cursor: 'pointer', fontSize: 12.5 },
+  main: { flex: 1, minWidth: 0, height: 'calc(100vh - 20px)', overflowY: 'auto', background: C.bg, borderRadius: 16, padding: 28, boxSizing: 'border-box' },
   topBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 16 },
-  titleInput: { fontSize: 22, fontWeight: 700, background: 'transparent', border: 'none', color: '#f2ede4', borderBottom: '1px solid #262019', padding: '4px 0', flex: 1 },
-  savedNote: { fontSize: 12, color: '#948e82' },
-  saveBtn: { background: '#c98a3f', border: 'none', color: '#0a0908', fontWeight: 600, padding: '8px 18px', borderRadius: 8, cursor: 'pointer', fontSize: 13 },
-  regionTabs: { display: 'flex', gap: 8, marginBottom: 16 },
-  regionTab: { background: 'transparent', border: '1px solid #262019', color: '#948e82', padding: '6px 14px', borderRadius: 999, cursor: 'pointer', fontSize: 12 },
-  regionTabActive: { color: '#f2ede4', borderColor: '#c98a3f', background: 'rgba(201,138,63,.14)' },
-  hint: { fontSize: 12, color: '#948e82', marginBottom: 16 },
+  titleInput: { fontSize: 22, fontWeight: 700, background: 'transparent', border: 'none', color: C.ink, borderBottom: `1px solid ${C.line}`, padding: '4px 0', flex: 1 },
+  savedNote: { fontSize: 12, color: C.muted },
+  saveBtn: { background: C.accent, border: 'none', color: '#fff', fontWeight: 700, padding: '9px 20px', borderRadius: 999, cursor: 'pointer', fontSize: 13.5 },
+  regionTabs: { display: 'flex', gap: 8, marginBottom: 12 },
+  regionTab: { display: 'flex', alignItems: 'center', gap: 6, background: C.card, border: `1px solid ${C.line}`, color: C.muted, padding: '9px 16px', borderRadius: 999, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
+  regionTabActive: { color: '#fff', borderColor: C.accent, background: C.accent },
+  regionTabCount: { fontSize: 11, opacity: .75, fontVariantNumeric: 'tabular-nums' },
+  hint: { fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 },
   clipGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 14 },
-  clipCard: { background: '#15130f', border: '1px solid #262019', borderRadius: 10, overflow: 'hidden', cursor: 'grab' },
+  clipCard: { background: C.card, border: `1px solid ${C.line}`, borderRadius: 10, overflow: 'hidden', cursor: 'grab' },
   clipVideo: { width: '100%', aspectRatio: '9/16', objectFit: 'cover', background: '#000' },
   clipFooter: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px' },
-  clipIndex: { fontSize: 11, color: '#948e82' },
-  removeBtn: { background: 'transparent', border: 'none', color: '#e08a6b', cursor: 'pointer', fontSize: 11 },
-  addCard: { aspectRatio: '9/16', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dashed #262019', borderRadius: 10, color: '#948e82', fontSize: 12, cursor: 'pointer', textAlign: 'center', padding: 8 },
+  clipIndex: { fontSize: 11, color: C.muted },
+  removeBtn: { background: 'transparent', border: 'none', color: C.accent, cursor: 'pointer', fontSize: 11 },
+  addCard: { aspectRatio: '9/16', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px dashed ${C.line}`, borderRadius: 10, color: C.muted, fontSize: 12, cursor: 'pointer', textAlign: 'center', padding: 8 },
   leadsTable: { display: 'flex', flexDirection: 'column', gap: 8 },
-  leadRow: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1.2fr', gap: 12, alignItems: 'center', padding: '12px 14px', background: '#15130f', border: '1px solid #262019', borderRadius: 10, fontSize: 13 },
-  leadBrand: { fontWeight: 700, color: '#f2ede4' },
-  leadPhone: { color: '#f2ede4' },
-  leadCategory: { color: '#c98a3f' },
-  leadTime: { color: '#948e82', fontSize: 12 },
+  leadRow: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1.2fr', gap: 12, alignItems: 'center', padding: '12px 14px', background: C.card, border: `1px solid ${C.line}`, borderRadius: 10, fontSize: 13 },
+  leadBrand: { fontWeight: 700, color: C.ink },
+  leadPhone: { color: C.ink },
+  leadCategory: { color: C.accent },
+  leadTime: { color: C.muted, fontSize: 12 },
 };

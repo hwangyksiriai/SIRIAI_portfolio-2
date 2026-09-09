@@ -51,11 +51,11 @@ export default function LoginPage() {
 }
 
 const styles = {
-  wrap: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0908' },
-  card: { width: 320, display: 'flex', flexDirection: 'column', gap: 12, padding: 32, background: '#15130f', border: '1px solid #262019', borderRadius: 12 },
-  title: { color: '#f2ede4', fontFamily: 'system-ui, sans-serif', fontSize: 22, margin: 0, fontWeight: 700 },
-  sub: { color: '#948e82', fontFamily: 'system-ui, sans-serif', fontSize: 13, margin: '0 0 8px' },
-  input: { padding: '10px 12px', borderRadius: 8, border: '1px solid #262019', background: '#0a0908', color: '#f2ede4', fontSize: 14 },
-  error: { color: '#e08a6b', fontSize: 12, fontFamily: 'system-ui, sans-serif' },
-  button: { padding: '10px 12px', borderRadius: 8, border: 'none', background: '#c98a3f', color: '#0a0908', fontWeight: 600, cursor: 'pointer', fontSize: 14 },
+  wrap: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#ebeae7' },
+  card: { width: 320, display: 'flex', flexDirection: 'column', gap: 12, padding: 32, background: '#ffffff', border: '1px solid #e4ded2', borderRadius: 16 },
+  title: { color: '#171310', fontFamily: 'system-ui, sans-serif', fontSize: 22, margin: 0, fontWeight: 700 },
+  sub: { color: '#6f6a5c', fontFamily: 'system-ui, sans-serif', fontSize: 13, margin: '0 0 8px' },
+  input: { padding: '10px 12px', borderRadius: 8, border: '1px solid #e4ded2', background: '#f5f2ec', color: '#171310', fontSize: 14 },
+  error: { color: '#fa233b', fontSize: 12, fontFamily: 'system-ui, sans-serif' },
+  button: { padding: '10px 12px', borderRadius: 999, border: 'none', background: '#fa233b', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 14 },
 };
