@@ -108,32 +108,14 @@ function continuationsFor(categories, id) {
 
 function CategoryFeed({ cat, categories }) {
   const hasRegions = Array.isArray(cat.regions) && cat.regions.length > 0;
-  const domesticRegion = hasRegions && cat.regions.find((r) => r.key === 'domestic');
-  const abroadRegion = hasRegions && cat.regions.find((r) => r.key === 'abroad');
-  const isDomesticAbroad = !!(domesticRegion && abroadRegion);
-  // A domestic/abroad category that only has clips on one side (e.g. only
-  // domestic footage submitted so far): no tabs to switch between, but the
-  // single side still gets a plain label so it's clear what's showing.
-  const onlyRegion = !isDomesticAbroad && (domesticRegion || abroadRegion);
-  const [showAbroad, setShowAbroad] = useState(false);
-
-  // Non domestic/abroad region shapes (e.g. Artist Promotion's country
-  // regions) keep their original order and per-region badges, all at once.
-  const clips = isDomesticAbroad || onlyRegion
-    ? (domesticRegion || abroadRegion).clips
-    : hasRegions
-      ? cat.regions.flatMap((r) => r.clips.map((src) => ({ src, badge: r.label })))
-      : (cat.clips || []);
-  const abroadClips = isDomesticAbroad ? abroadRegion.clips : [];
+  const regions = hasRegions ? cat.regions.filter((r) => (r.clips || []).length > 0) : [];
+  const [activeIndex, setActiveIndex] = useState(0);
   const continuations = continuationsFor(categories, cat.id);
 
-  if (onlyRegion) {
+  if (!hasRegions) {
     return (
       <div className="cat-feed">
-        <div className="cat-region-tabs">
-          <span className="cat-region-tab active">{onlyRegion.label}</span>
-        </div>
-        <ClipGrid layout={cat.layout} clips={clips} />
+        <ClipGrid layout={cat.layout} clips={cat.clips || []} />
         {continuations.map((c) => (
           <ClipGrid key={c.id} layout={c.layout} clips={c.clips} />
         ))}
@@ -141,48 +123,49 @@ function CategoryFeed({ cat, categories }) {
     );
   }
 
-  if (!isDomesticAbroad) {
+  // A single populated region (e.g. only domestic footage submitted so far,
+  // or only one country for Artist Promotion): no tabs to switch between,
+  // but the region still gets a plain label so it's clear what's showing.
+  if (regions.length <= 1) {
+    const region = regions[0];
     return (
       <div className="cat-feed">
-        <ClipGrid layout={cat.layout} clips={clips} />
+        {region && (
+          <div className="cat-region-tabs">
+            <span className="cat-region-tab active">{region.label}</span>
+          </div>
+        )}
+        <ClipGrid layout={cat.layout} clips={region ? region.clips : []} />
         {continuations.map((c) => (
           <ClipGrid key={c.id} layout={c.layout} clips={c.clips} />
         ))}
       </div>
     );
   }
+
+  const active = regions[Math.min(activeIndex, regions.length - 1)];
 
   return (
     <div className="cat-feed">
       <div className="cat-region-tabs">
-        <button
-          type="button"
-          className={'cat-region-tab' + (!showAbroad ? ' active' : '')}
-          onClick={() => setShowAbroad(false)}
-        >
-          국내
-        </button>
-        <button
-          type="button"
-          className={'cat-region-tab' + (showAbroad ? ' active' : '')}
-          onClick={() => setShowAbroad(true)}
-        >
-          해외
-        </button>
+        {regions.map((r, i) => (
+          <button
+            key={r.key}
+            type="button"
+            className={'cat-region-tab' + (i === activeIndex ? ' active' : '')}
+            onClick={() => setActiveIndex(i)}
+          >
+            {r.label}
+          </button>
+        ))}
       </div>
 
-      {showAbroad ? (
-        <div className="cat-region-panel" key="abroad">
-          <ClipGrid layout={cat.layout} clips={abroadClips} />
-        </div>
-      ) : (
-        <div className="cat-region-panel" key="domestic">
-          <ClipGrid layout={cat.layout} clips={clips} />
-          {continuations.map((c) => (
-            <ClipGrid key={c.id} layout={c.layout} clips={c.clips} />
-          ))}
-        </div>
-      )}
+      <div className="cat-region-panel" key={active.key}>
+        <ClipGrid layout={cat.layout} clips={active.clips} />
+        {activeIndex === 0 && continuations.map((c) => (
+          <ClipGrid key={c.id} layout={c.layout} clips={c.clips} />
+        ))}
+      </div>
     </div>
   );
 }
