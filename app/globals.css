@@ -231,7 +231,7 @@ button.cat-region-tab:hover{ color:var(--ink); }
 .cat-title{ font-family:var(--display); font-weight:700; letter-spacing:-.02em; font-size:30px; color:var(--ink); margin:0 0 20px; }
 
 .cat-marquee{
-  margin:0 -4px 24px; padding:24px 0; overflow:hidden; border-radius:14px;
+  position:relative; margin:0 -4px 24px; padding:24px 0; overflow:hidden; border-radius:14px;
   background:var(--card);
   -webkit-mask-image:linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
   mask-image:linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
@@ -246,12 +246,33 @@ button.cat-region-tab:hover{ color:var(--ink); }
   white-space:nowrap;
 }
 .cat-marquee-item-label{
-  font-family:var(--display); font-weight:600; font-size:22px; letter-spacing:-.01em; color:var(--muted);
+  font-family:var(--display); font-weight:600; font-size:22px; letter-spacing:-.01em; color:rgba(23,19,16,.28);
   transition:color .2s ease, font-weight .2s ease, transform .2s ease; transform-origin:left center; display:inline-block;
 }
 .cat-marquee-item-label:hover{ color:var(--ink); font-weight:800; transform:scale(1.12); }
 .cat-marquee-dot{ color:var(--line); font-size:10px; }
 @keyframes catMarquee{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+
+/* Decorative spotlight sweep: a second identical text track, gradient-
+   colored, revealed only under a slim mask band that drifts across the bar
+   on its own clock — independent of the marquee's own scroll speed — so a
+   different brand catches the light every few seconds. */
+.cat-marquee-shine-mask{
+  position:absolute; inset:0; overflow:hidden; pointer-events:none; display:flex; align-items:center;
+  -webkit-mask-image:linear-gradient(90deg, transparent, transparent 44%, #000 50%, transparent 56%, transparent);
+  -webkit-mask-size:260% 100%; -webkit-mask-repeat:no-repeat;
+  mask-image:linear-gradient(90deg, transparent, transparent 44%, #000 50%, transparent 56%, transparent);
+  mask-size:260% 100%; mask-repeat:no-repeat;
+  animation:catMarqueeShine 5.5s linear infinite;
+}
+.cat-marquee:hover .cat-marquee-shine-mask{ animation-play-state:paused; }
+.cat-marquee-track-shine{ padding:0; }
+.cat-marquee-track-shine .cat-marquee-item-label{
+  background:linear-gradient(90deg, #ff8a00, #ff3d81, #a239ff, #ff3d81, #ff8a00);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.cat-marquee-track-shine .cat-marquee-dot{ color:transparent; }
+@keyframes catMarqueeShine{ from{ mask-position:-160% 0; -webkit-mask-position:-160% 0; } to{ mask-position:160% 0; -webkit-mask-position:160% 0; } }
 
 .sr-only{
   position:absolute; width:1px; height:1px; padding:0; margin:-1px;

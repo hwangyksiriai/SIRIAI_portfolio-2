@@ -170,19 +170,32 @@ const MARQUEE_BRANDS = [
   'Lusom', 'Pretty Actually', 'Yadah', 'if:fu', 'Keybo', 'Skinsignal',
 ];
 
-function BrandMarquee() {
+function MarqueeItems() {
   // Doubled so the loop can reset invisibly at the halfway point (seamless,
   // constant-speed right-to-left scroll — no jump or restart flicker).
   const items = [...MARQUEE_BRANDS, ...MARQUEE_BRANDS];
+  return items.map((label, i) => (
+    <span key={i} className="cat-marquee-item">
+      <span className="cat-marquee-item-label">{label}</span>
+      <span className="cat-marquee-dot" aria-hidden="true">•</span>
+    </span>
+  ));
+}
+
+function BrandMarquee() {
   return (
     <div className="cat-marquee">
       <div className="cat-marquee-track">
-        {items.map((label, i) => (
-          <span key={i} className="cat-marquee-item">
-            <span className="cat-marquee-item-label">{label}</span>
-            <span className="cat-marquee-dot" aria-hidden="true">•</span>
-          </span>
-        ))}
+        <MarqueeItems />
+      </div>
+      {/* A second, identically-scrolling copy of the text, gradient-colored
+          and revealed only through a moving spotlight mask — so whichever
+          brand happens to sit under the sweep lights up, independent of the
+          scroll itself. Purely decorative, hidden from assistive tech. */}
+      <div className="cat-marquee-shine-mask" aria-hidden="true">
+        <div className="cat-marquee-track cat-marquee-track-shine">
+          <MarqueeItems />
+        </div>
       </div>
     </div>
   );
