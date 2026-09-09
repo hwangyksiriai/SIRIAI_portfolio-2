@@ -223,8 +223,21 @@ button.cat-region-tab:hover{ color:var(--ink); }
 .cat-region-panel{ animation:catRegionIn .35s cubic-bezier(.16,1,.3,1); }
 @keyframes catRegionIn{ from{ transform:translateX(48px); opacity:0; } to{ transform:translateX(0); opacity:1; } }
 
-.cat-header{ padding-bottom:24px; margin-bottom:36px; border-bottom:1px solid var(--line); }
-.cat-title{ font-family:var(--display); font-weight:700; letter-spacing:-.02em; font-size:30px; color:var(--ink); margin:0; }
+.cat-header{ padding-bottom:0; margin-bottom:36px; border-bottom:1px solid var(--line); }
+.cat-title{ font-family:var(--display); font-weight:700; letter-spacing:-.02em; font-size:30px; color:var(--ink); margin:0 0 20px; }
+
+.cat-marquee{
+  margin:0 -4px 24px; padding:14px 0; overflow:hidden;
+  -webkit-mask-image:linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  mask-image:linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+.cat-marquee-track{ display:flex; gap:40px; width:max-content; animation:catMarquee 22s linear infinite; }
+.cat-marquee-item{
+  font-family:var(--display); font-weight:600; font-size:15px; letter-spacing:-.01em; color:var(--muted);
+  white-space:nowrap;
+}
+.cat-marquee-item.is-featured{ color:var(--ink); font-weight:800; }
+@keyframes catMarquee{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
 
 .sr-only{
   position:absolute; width:1px; height:1px; padding:0; margin:-1px;

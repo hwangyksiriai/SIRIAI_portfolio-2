@@ -164,6 +164,23 @@ function CategoryFeed({ cat, categories }) {
   );
 }
 
+const MARQUEE_BRANDS = ['SIRIAI', 'Beauty', 'Fashion', 'Lifestyle', 'Travel & Tourism', 'Artist Promotion'];
+
+function BrandMarquee() {
+  const items = [...MARQUEE_BRANDS, ...MARQUEE_BRANDS];
+  return (
+    <div className="cat-marquee">
+      <div className="cat-marquee-track">
+        {items.map((label, i) => (
+          <span key={i} className={'cat-marquee-item' + (i % MARQUEE_BRANDS.length === 0 ? ' is-featured' : '')}>
+            {label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ContactBar({ category }) {
   const [brand, setBrand] = useState('');
   const [phone, setPhone] = useState('');
@@ -273,6 +290,7 @@ export default function PortfolioView({ config }) {
           <div className="app-main-inner">
             <div className="cat-header">
               <h1 className="cat-title">{activeCategory.navLabel}</h1>
+              <BrandMarquee />
             </div>
 
             <CategoryFeed cat={activeCategory} categories={categories} key={activeCategory.id} />
