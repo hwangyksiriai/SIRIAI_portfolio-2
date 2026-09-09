@@ -165,16 +165,22 @@ function CategoryFeed({ cat, categories }) {
   );
 }
 
-const MARQUEE_BRANDS = [
-  'ODDTYPE', 'INNISFREE', 'TOCOBO', 'Quadthera', 'forhz', 'OFFLOW', 'KEEPINTOUCH',
-  'Ohayoh', 'No the Love', 'COSRX', 'Musinsa standard beauty', 'wizzy', 'Finv',
-  'Lusom', 'Pretty Actually', 'Yadah', 'if:fu', 'Keybo', 'Skinsignal',
-];
+const MARQUEE_BRANDS_BY_CATEGORY = {
+  'cat-beauty': [
+    'ODDTYPE', 'INNISFREE', 'TOCOBO', 'Quadthera', 'forhz', 'OFFLOW', 'KEEPINTOUCH',
+    'Ohayoh', 'No the Love', 'COSRX', 'Musinsa standard beauty', 'wizzy', 'Finv',
+    'Lusom', 'Pretty Actually', 'Yadah', 'if:fu', 'Keybo', 'Skinsignal',
+  ],
+  'cat-fashion': [
+    '8division', 'TOOMUCHTAX', 'innir', 'as if', 'Calie', 'Bluesunset', 'OJOS',
+    'Luaeb', 'The Cactus Hotel', 'Seven Eight Under', 'RATED GREEN', 'Lumiere Blanche', 'Velvaskin',
+  ],
+};
 
-function MarqueeItems() {
+function MarqueeItems({ brands }) {
   // Doubled so the loop can reset invisibly at the halfway point (seamless,
   // constant-speed right-to-left scroll — no jump or restart flicker).
-  const items = [...MARQUEE_BRANDS, ...MARQUEE_BRANDS];
+  const items = [...brands, ...brands];
   return items.map((label, i) => (
     <span key={i} className="cat-marquee-item">
       <span className="cat-marquee-item-label">{label}</span>
@@ -183,11 +189,14 @@ function MarqueeItems() {
   ));
 }
 
-function BrandMarquee() {
+function BrandMarquee({ categoryId }) {
+  const brands = MARQUEE_BRANDS_BY_CATEGORY[categoryId];
+  if (!brands) return null;
+
   return (
     <div className="cat-marquee">
       <div className="cat-marquee-track">
-        <MarqueeItems />
+        <MarqueeItems brands={brands} />
       </div>
       {/* A second, identically-scrolling copy of the text, gradient-colored
           and revealed only through a moving spotlight mask — so whichever
@@ -195,7 +204,7 @@ function BrandMarquee() {
           scroll itself. Purely decorative, hidden from assistive tech. */}
       <div className="cat-marquee-shine-mask" aria-hidden="true">
         <div className="cat-marquee-track cat-marquee-track-shine">
-          <MarqueeItems />
+          <MarqueeItems brands={brands} />
         </div>
       </div>
     </div>
@@ -316,7 +325,7 @@ export default function PortfolioView({ config }) {
           <div className="app-main-inner">
             <div className="cat-header">
               <h1 className="cat-title">{activeCategory.navLabel}</h1>
-              <BrandMarquee />
+              <BrandMarquee categoryId={activeCategory.id} />
             </div>
 
             <CategoryFeed cat={activeCategory} categories={categories} key={activeCategory.id} />
