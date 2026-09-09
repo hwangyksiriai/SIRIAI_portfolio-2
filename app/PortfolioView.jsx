@@ -197,23 +197,25 @@ function ContactBar({ category }) {
   return (
     <form className="floating-bar floating-bar-form" onSubmit={onSubmit}>
       <span className="floating-bar-copy">가장 쉽게 감각적인 비주얼을 만나보세요</span>
-      <input
-        className="floating-bar-input"
-        placeholder="브랜드명"
-        value={brand}
-        onChange={(e) => setBrand(e.target.value)}
-        maxLength={200}
-      />
-      <input
-        className="floating-bar-input"
-        placeholder="연락처"
-        value={phone}
-        onChange={(e) => setPhone(e.target.value)}
-        maxLength={50}
-      />
-      <button type="submit" className="floating-bar-submit" disabled={status === 'sending'}>
-        {status === 'sending' ? '접수 중...' : 'Contact'}
-      </button>
+      <div className="floating-bar-row">
+        <input
+          className="floating-bar-input"
+          placeholder="브랜드명"
+          value={brand}
+          onChange={(e) => setBrand(e.target.value)}
+          maxLength={200}
+        />
+        <input
+          className="floating-bar-input"
+          placeholder="연락처"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          maxLength={50}
+        />
+        <button type="submit" className="floating-bar-submit" disabled={status === 'sending'}>
+          {status === 'sending' ? '접수 중...' : 'Contact'}
+        </button>
+      </div>
       {status === 'error' && <span className="floating-bar-error">접수에 실패했어요. 다시 시도해주세요.</span>}
     </form>
   );
