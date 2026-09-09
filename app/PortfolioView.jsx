@@ -164,17 +164,23 @@ function CategoryFeed({ cat, categories }) {
   );
 }
 
-const MARQUEE_BRANDS = ['COSRX', 'TOCOBO', 'Musinsa standard beauty', 'Quadthera', 'forhz'];
-const MARQUEE_FEATURED = 'TOCOBO';
+const MARQUEE_BRANDS = [
+  'ODDTYPE', 'INNISFREE', 'TOCOBO', 'Quadthera', 'forhz', 'OFFLOW', 'KEEPINTOUCH',
+  'Ohayoh', 'No the Love', 'COSRX', 'Musinsa standard beauty', 'wizzy', 'Finv',
+  'Lusom', 'Pretty Actually', 'Yadah', 'if:fu', 'Keybo', 'Skinsignal',
+];
 
 function BrandMarquee() {
+  // Doubled so the loop can reset invisibly at the halfway point (seamless,
+  // constant-speed right-to-left scroll — no jump or restart flicker).
   const items = [...MARQUEE_BRANDS, ...MARQUEE_BRANDS];
   return (
     <div className="cat-marquee">
       <div className="cat-marquee-track">
         {items.map((label, i) => (
-          <span key={i} className={'cat-marquee-item' + (label === MARQUEE_FEATURED ? ' is-featured' : '')}>
+          <span key={i} className="cat-marquee-item">
             {label}
+            <span className="cat-marquee-dot" aria-hidden="true">•</span>
           </span>
         ))}
       </div>
