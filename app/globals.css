@@ -244,7 +244,7 @@ button.cat-region-tab:hover{ color:var(--ink); }
   white-space:nowrap;
 }
 .cat-marquee-item-label{
-  font-family:var(--display); font-weight:900; font-size:30px; letter-spacing:-.01em; color:rgba(23,19,16,.34);
+  font-family:var(--display); font-weight:1000; font-size:40px; letter-spacing:-.01em; color:rgba(23,19,16,.34);
   transition:color .2s ease, transform .2s ease; transform-origin:left center; display:inline-block;
 }
 .cat-marquee-item-label:hover{
