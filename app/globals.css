@@ -103,7 +103,7 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
    feed, with a glass floating bar pinned across the bottom. Sidebar and
    main are separate rounded cards floating on a grey shell background,
    matching Apple Music's own layout. */
-.app-shell{ display:flex; min-height:100vh; align-items:flex-start; gap:10px; background:var(--shell-bg); padding:10px; }
+.app-shell{ display:flex; min-height:100vh; align-items:flex-start; gap:10px; background:var(--shell-bg); padding:10px; overflow-x:hidden; }
 .app-sidebar{
   width:260px; flex:0 0 auto; height:calc(100vh - 20px); position:sticky; top:10px;
   display:flex; flex-direction:column; overflow-y:auto;
@@ -147,13 +147,34 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
 .app-sidebar-link:hover{ color:var(--ink); border-color:var(--accent); }
 
 .app-main{ flex:1; min-width:0; height:calc(100vh - 20px); overflow-y:auto; background:var(--bg); border-radius:16px; }
-.app-main-inner{ padding:32px 48px 130px; }
+.app-main-inner{ padding:32px 48px 130px; max-width:100%; overflow-x:hidden; }
 @media (max-width:900px){
-  .app-shell{ flex-direction:column; }
-  .app-sidebar{ width:100%; height:auto; position:relative; padding:16px; }
-  .app-sidebar-bottom{ position:relative; bottom:auto; margin-top:16px; }
+  /* The full vertical nav list doesn't fit above the fold on a phone, so it
+     collapses into a compact sticky top bar: logo + a horizontally
+     scrollable row of category pills, instead of a tall stacked list the
+     visitor has to scroll past before seeing any content. */
+  .app-shell{ flex-direction:column; padding:8px; gap:8px; }
+  .app-sidebar{
+    width:100%; height:auto; position:sticky; top:8px; z-index:30;
+    flex-direction:row; align-items:center; padding:10px 12px; gap:10px; overflow:visible;
+  }
+  .app-sidebar-logo{ margin-bottom:0; flex:0 0 auto; }
+  .app-sidebar-logo-word{ height:14px; }
+  .app-nav-section{
+    flex-direction:row; flex:1; min-width:0; overflow-x:auto; gap:4px;
+    -webkit-overflow-scrolling:touch; scrollbar-width:none;
+  }
+  .app-nav-section::-webkit-scrollbar{ display:none; }
+  .app-nav-item{ width:auto; flex:0 0 auto; white-space:nowrap; padding:8px 12px; gap:8px; }
+  .app-nav-item svg{ width:16px; height:16px; }
+  .app-sidebar-bottom{ display:none; }
   .app-main{ height:auto; overflow-y:visible; }
-  .app-main-inner{ padding:24px 20px 100px; }
+  .app-main-inner{ padding:24px 20px 150px; }
+}
+@media (max-width:480px){
+  .floating-bar-row{ flex-wrap:wrap; }
+  .floating-bar-input{ flex:1 1 auto; }
+  .floating-bar-submit{ flex:1 1 100%; }
 }
 
 /* Glass floating bar, echoing Apple Music's rounded mini-player pill. */
