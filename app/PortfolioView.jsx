@@ -243,7 +243,7 @@ function ContactBar({ category }) {
 
   return (
     <form className="floating-bar floating-bar-form" onSubmit={onSubmit}>
-      <span className="floating-bar-copy">가장 쉽게 감각적인 비주얼을 만나보세요</span>
+      <span className="floating-bar-copy">가장 쉬운 방법으로 감각적인 비주얼을 만나보세요</span>
       <div className="floating-bar-row">
         <input
           className="floating-bar-input"
