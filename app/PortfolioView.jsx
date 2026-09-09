@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 const BRAND_SYMBOL = '/media/brand/symbol-black.png';
-const BRAND_LOGO_WHITE = '/media/brand/logo-white.png';
+const BRAND_WORDMARK = '/media/brand/logo-wordmark.png';
 
 /* 1x1 transparent GIF. Without a poster, mobile browsers paint their own grey
    play-button placeholder until the first frame decodes; this hands them an
@@ -110,34 +110,60 @@ function CategoryFeed({ cat, categories }) {
   const hasRegions = Array.isArray(cat.regions) && cat.regions.length > 0;
   const domesticRegion = hasRegions && cat.regions.find((r) => r.key === 'domestic');
   const abroadRegion = hasRegions && cat.regions.find((r) => r.key === 'abroad');
-  // Domestic/abroad categories (Beauty, Fashion, Travel...) push overseas
-  // clips to the very end, past the continuation pages, with a badge; every
-  // other region shape (e.g. Artist Promotion's country regions) keeps its
-  // original order and per-region badges.
-  const clips = domesticRegion && abroadRegion
+  const isDomesticAbroad = !!(domesticRegion && abroadRegion);
+  const [showAbroad, setShowAbroad] = useState(false);
+
+  // Non domestic/abroad region shapes (e.g. Artist Promotion's country
+  // regions) keep their original order and per-region badges, all at once.
+  const clips = isDomesticAbroad
     ? domesticRegion.clips
     : hasRegions
       ? cat.regions.flatMap((r) => r.clips.map((src) => ({ src, badge: r.label })))
       : (cat.clips || []);
-  const abroadClips = domesticRegion && abroadRegion
-    ? abroadRegion.clips.map((src) => ({ src, badge: '해외' }))
-    : [];
+  const abroadClips = isDomesticAbroad ? abroadRegion.clips : [];
   const continuations = continuationsFor(categories, cat.id);
 
-  const isDomesticAbroad = !!(domesticRegion && abroadRegion);
+  if (!isDomesticAbroad) {
+    return (
+      <div className="cat-feed">
+        <ClipGrid layout={cat.layout} clips={clips} />
+        {continuations.map((c) => (
+          <ClipGrid key={c.id} layout={c.layout} clips={c.clips} />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="cat-feed">
-      {isDomesticAbroad && <h2 className="cat-feed-subhead">국내</h2>}
-      <ClipGrid layout={cat.layout} clips={clips} />
-      {continuations.map((c) => (
-        <ClipGrid key={c.id} layout={c.layout} clips={c.clips} />
-      ))}
-      {abroadClips.length > 0 && (
-        <>
-          <h2 className="cat-feed-subhead">해외</h2>
+      <div className="cat-region-tabs">
+        <button
+          type="button"
+          className={'cat-region-tab' + (!showAbroad ? ' active' : '')}
+          onClick={() => setShowAbroad(false)}
+        >
+          국내
+        </button>
+        <button
+          type="button"
+          className={'cat-region-tab' + (showAbroad ? ' active' : '')}
+          onClick={() => setShowAbroad(true)}
+        >
+          해외
+        </button>
+      </div>
+
+      {showAbroad ? (
+        <div className="cat-region-panel" key="abroad">
           <ClipGrid layout={cat.layout} clips={abroadClips} />
-        </>
+        </div>
+      ) : (
+        <div className="cat-region-panel" key="domestic">
+          <ClipGrid layout={cat.layout} clips={clips} />
+          {continuations.map((c) => (
+            <ClipGrid key={c.id} layout={c.layout} clips={c.clips} />
+          ))}
+        </div>
       )}
     </div>
   );
@@ -159,8 +185,8 @@ export default function PortfolioView({ config }) {
     <div className="app-shell">
       <aside className="app-sidebar">
         <div className="app-sidebar-logo">
-          <span className="app-sidebar-logo-mark"><img src={BRAND_LOGO_WHITE} alt="" /></span>
-          SIRIAI
+          <span className="app-sidebar-logo-mark"><img src={BRAND_SYMBOL} alt="" /></span>
+          <img className="app-sidebar-logo-word" src={BRAND_WORDMARK} alt="Siriai" />
         </div>
 
         <nav className="app-nav-section">
