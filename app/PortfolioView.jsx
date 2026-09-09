@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 const BRAND_SYMBOL = '/media/brand/symbol-black.png';
 const BRAND_WORDMARK = '/media/brand/logo-wordmark.png';
+const BRAND_WORDMARK_GREY = '/media/brand/logo-wordmark-grey.png';
 
 /* 1x1 transparent GIF. Without a poster, mobile browsers paint their own grey
    play-button placeholder until the first frame decodes; this hands them an
@@ -323,7 +324,7 @@ export default function PortfolioView({ config }) {
         ) : (
           <div className="home-hero" key="home">
             <div className="home-hero-inner">
-              <div className="home-hero-brand">SIRIAI</div>
+              <img className="home-hero-brand" src={BRAND_WORDMARK_GREY} alt="Siriai" />
               <h1 className="home-hero-title">감각적인 비주얼을<br />만나보세요.</h1>
               <img className="home-hero-symbol" src={BRAND_SYMBOL} alt="Siriai" />
               <p className="home-hero-sub">
