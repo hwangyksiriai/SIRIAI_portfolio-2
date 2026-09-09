@@ -227,7 +227,7 @@ function ContactBar({ category }) {
   if (status === 'done') {
     return (
       <div className="floating-bar floating-bar-done">
-        문의가 접수되었습니다. 빠르게 연락드릴게요 🤍
+        문의가 접수되었습니다.
       </div>
     );
   }
