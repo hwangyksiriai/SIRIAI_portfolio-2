@@ -111,17 +111,35 @@ function CategoryFeed({ cat, categories }) {
   const domesticRegion = hasRegions && cat.regions.find((r) => r.key === 'domestic');
   const abroadRegion = hasRegions && cat.regions.find((r) => r.key === 'abroad');
   const isDomesticAbroad = !!(domesticRegion && abroadRegion);
+  // A domestic/abroad category that only has clips on one side (e.g. only
+  // domestic footage submitted so far): no tabs to switch between, but the
+  // single side still gets a plain label so it's clear what's showing.
+  const onlyRegion = !isDomesticAbroad && (domesticRegion || abroadRegion);
   const [showAbroad, setShowAbroad] = useState(false);
 
   // Non domestic/abroad region shapes (e.g. Artist Promotion's country
   // regions) keep their original order and per-region badges, all at once.
-  const clips = isDomesticAbroad
-    ? domesticRegion.clips
+  const clips = isDomesticAbroad || onlyRegion
+    ? (domesticRegion || abroadRegion).clips
     : hasRegions
       ? cat.regions.flatMap((r) => r.clips.map((src) => ({ src, badge: r.label })))
       : (cat.clips || []);
   const abroadClips = isDomesticAbroad ? abroadRegion.clips : [];
   const continuations = continuationsFor(categories, cat.id);
+
+  if (onlyRegion) {
+    return (
+      <div className="cat-feed">
+        <div className="cat-region-tabs">
+          <span className="cat-region-tab active">{onlyRegion.label}</span>
+        </div>
+        <ClipGrid layout={cat.layout} clips={clips} />
+        {continuations.map((c) => (
+          <ClipGrid key={c.id} layout={c.layout} clips={c.clips} />
+        ))}
+      </div>
+    );
+  }
 
   if (!isDomesticAbroad) {
     return (
