@@ -239,9 +239,13 @@ button.cat-region-tab:hover{ color:var(--ink); }
 .cat-marquee:hover .cat-marquee-track{ animation-play-state:paused; }
 .cat-marquee-item{
   display:flex; align-items:center; gap:28px;
-  font-family:var(--display); font-weight:600; font-size:22px; letter-spacing:-.01em; color:var(--muted);
   white-space:nowrap;
 }
+.cat-marquee-item-label{
+  font-family:var(--display); font-weight:600; font-size:22px; letter-spacing:-.01em; color:var(--muted);
+  transition:color .2s ease, font-weight .2s ease, transform .2s ease; transform-origin:left center; display:inline-block;
+}
+.cat-marquee-item-label:hover{ color:var(--ink); font-weight:800; transform:scale(1.12); }
 .cat-marquee-dot{ color:var(--line); font-size:10px; }
 @keyframes catMarquee{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
 

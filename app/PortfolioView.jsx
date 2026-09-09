@@ -179,7 +179,7 @@ function BrandMarquee() {
       <div className="cat-marquee-track">
         {items.map((label, i) => (
           <span key={i} className="cat-marquee-item">
-            {label}
+            <span className="cat-marquee-item-label">{label}</span>
             <span className="cat-marquee-dot" aria-hidden="true">•</span>
           </span>
         ))}
