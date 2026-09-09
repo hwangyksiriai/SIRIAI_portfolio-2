@@ -164,6 +164,61 @@ function CategoryFeed({ cat, categories }) {
   );
 }
 
+function ContactBar({ category }) {
+  const [brand, setBrand] = useState('');
+  const [phone, setPhone] = useState('');
+  const [status, setStatus] = useState('idle'); // 'idle' | 'sending' | 'done' | 'error'
+
+  async function onSubmit(e) {
+    e.preventDefault();
+    if (!brand.trim() || !phone.trim() || status === 'sending') return;
+    setStatus('sending');
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brand, phone, category: category || null }),
+      });
+      if (!res.ok) throw new Error('failed');
+      setStatus('done');
+    } catch {
+      setStatus('error');
+    }
+  }
+
+  if (status === 'done') {
+    return (
+      <div className="floating-bar floating-bar-done">
+        문의가 접수되었습니다. 빠르게 연락드릴게요 🤍
+      </div>
+    );
+  }
+
+  return (
+    <form className="floating-bar floating-bar-form" onSubmit={onSubmit}>
+      <span className="floating-bar-copy">가장 쉽게 감각적인 비주얼을 만나보세요</span>
+      <input
+        className="floating-bar-input"
+        placeholder="브랜드명"
+        value={brand}
+        onChange={(e) => setBrand(e.target.value)}
+        maxLength={200}
+      />
+      <input
+        className="floating-bar-input"
+        placeholder="연락처"
+        value={phone}
+        onChange={(e) => setPhone(e.target.value)}
+        maxLength={50}
+      />
+      <button type="submit" className="floating-bar-submit" disabled={status === 'sending'}>
+        {status === 'sending' ? '접수 중...' : 'Contact'}
+      </button>
+      {status === 'error' && <span className="floating-bar-error">접수에 실패했어요. 다시 시도해주세요.</span>}
+    </form>
+  );
+}
+
 export default function PortfolioView({ config }) {
   const categories = config.categories;
   const navCategories = categories.filter((cat) => !cat.hideFromNav);
@@ -239,7 +294,7 @@ export default function PortfolioView({ config }) {
         )}
       </main>
 
-      <div className="floating-bar">감각적인 비주얼을 만나보세요</div>
+      <ContactBar category={activeCategory?.navLabel} />
     </div>
   );
 }

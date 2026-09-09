@@ -177,6 +177,29 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
 }
 @media (max-width:900px){ .floating-bar{ left:20px; right:20px; } }
 
+.floating-bar-form{ gap:10px; flex-wrap:wrap; padding:12px 14px; }
+.floating-bar-copy{ font-size:13.5px; font-weight:600; color:var(--ink); white-space:nowrap; margin-right:2px; }
+.floating-bar-input{
+  flex:1 1 120px; min-width:0; padding:9px 14px; border-radius:999px;
+  font-family:var(--body); font-size:13px; font-weight:500; color:var(--ink);
+  background:rgba(255,255,255,.55); border:1px solid rgba(23,19,16,.1);
+  outline:none; transition:border-color .15s ease, background .15s ease;
+}
+.floating-bar-input::placeholder{ color:var(--muted); }
+.floating-bar-input:focus{ border-color:var(--accent); background:rgba(255,255,255,.85); }
+.floating-bar-submit{
+  flex:0 0 auto; padding:9px 22px; border-radius:999px; border:none; cursor:pointer;
+  font-family:var(--body); font-weight:700; font-size:13px; color:#fff; background:var(--accent);
+  box-shadow:0 8px 20px -8px rgba(250,35,59,.55); transition:filter .15s ease, opacity .15s ease;
+}
+.floating-bar-submit:hover{ filter:brightness(1.08); }
+.floating-bar-submit:disabled{ opacity:.6; cursor:default; }
+.floating-bar-error{ flex-basis:100%; font-size:11.5px; color:var(--accent); text-align:center; }
+.floating-bar-done{ font-weight:700; }
+@media (max-width:700px){
+  .floating-bar-copy{ display:none; }
+}
+
 /* Apple-Music-homage Home screen: full-bleed black hero, slides in from
    the right whenever "홈" is selected. */
 .home-hero{
