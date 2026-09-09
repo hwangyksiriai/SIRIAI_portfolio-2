@@ -136,7 +136,7 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
 .app-sidebar-bottom{ margin-top:auto; position:sticky; bottom:12px; display:flex; flex-direction:column; gap:10px; }
 
 .app-sidebar-link{
-  display:flex; align-items:center; gap:8px;
+  display:flex; align-items:center; gap:8px; width:88%; align-self:center;
   padding:11px 14px; border-radius:12px; border:1px solid var(--line); background:var(--card);
   font-family:var(--body); font-weight:600; font-size:13px; color:var(--muted); text-decoration:none;
   transition:color .15s ease, border-color .15s ease;
