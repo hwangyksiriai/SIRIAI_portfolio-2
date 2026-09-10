@@ -101,27 +101,15 @@ function ClipGrid({ layout, clips }) {
   );
 }
 
-/* Continuation pages hold overflow clips for the same nav category, e.g.
-   cat-beauty-2..9 for cat-beauty. Scrolling the story panel for "Beauty"
-   should surface all of them, one grid after another. */
-function continuationsFor(categories, id) {
-  const re = new RegExp('^' + id + '-\\d+$');
-  return categories.filter((c) => re.test(c.id) && (c.clips || []).length > 0);
-}
-
-function CategoryFeed({ cat, categories }) {
+function CategoryFeed({ cat }) {
   const hasRegions = Array.isArray(cat.regions) && cat.regions.length > 0;
   const regions = hasRegions ? cat.regions.filter((r) => (r.clips || []).length > 0) : [];
   const [activeIndex, setActiveIndex] = useState(0);
-  // Continuation pages (cat-beauty-2, -3, ...) hold overflow clips for the
-  // same category; folding them into one flat list lets the grid pack every
-  // clip densely instead of starting a half-empty row per page.
-  const continuationClips = continuationsFor(categories, cat.id).flatMap((c) => c.clips || []);
 
   if (!hasRegions) {
     return (
       <div className="cat-feed">
-        <ClipGrid layout={cat.layout} clips={[...(cat.clips || []), ...continuationClips]} />
+        <ClipGrid layout={cat.layout} clips={cat.clips || []} />
       </div>
     );
   }
@@ -138,7 +126,7 @@ function CategoryFeed({ cat, categories }) {
             <span className="cat-region-tab active">{region.label}</span>
           </div>
         )}
-        <ClipGrid layout={cat.layout} clips={[...(region ? region.clips : []), ...continuationClips]} />
+        <ClipGrid layout={cat.layout} clips={region ? region.clips : []} />
       </div>
     );
   }
@@ -161,7 +149,7 @@ function CategoryFeed({ cat, categories }) {
       </div>
 
       <div className="cat-region-panel" key={active.key}>
-        <ClipGrid layout={cat.layout} clips={activeIndex === 0 ? [...active.clips, ...continuationClips] : active.clips} />
+        <ClipGrid layout={cat.layout} clips={active.clips} />
       </div>
     </div>
   );
@@ -343,7 +331,7 @@ export default function PortfolioView({ config, initialView = 'home' }) {
               <BrandMarquee categoryId={activeCategory.id} />
             </div>
 
-            <CategoryFeed cat={activeCategory} categories={categories} key={activeCategory.id} />
+            <CategoryFeed cat={activeCategory} key={activeCategory.id} />
           </div>
         ) : (
           <div className="home-hero" key="home">
