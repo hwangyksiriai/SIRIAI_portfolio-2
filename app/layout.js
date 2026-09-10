@@ -1,6 +1,6 @@
 import './globals.css';
 
-const SITE_URL = 'https://siriai-portfolio-2-5zez.vercel.app';
+const SITE_URL = 'https://portfolio.siriai.co.kr';
 const DESCRIPTION = '브랜드의 아이덴티티에 가장 근접한 인플루언서 큐레이션.';
 
 export const metadata = {

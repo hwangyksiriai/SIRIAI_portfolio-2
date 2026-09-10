@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import { pathForView, viewForSlug } from '@/lib/slugs';
+
 const BRAND_SYMBOL = '/media/brand/symbol-black.png';
 const BRAND_WORDMARK = '/media/brand/logo-wordmark.png';
 const BRAND_WORDMARK_GREY = '/media/brand/logo-wordmark-grey.png';
@@ -273,15 +275,28 @@ function ContactBar({ category }) {
   );
 }
 
-export default function PortfolioView({ config }) {
+export default function PortfolioView({ config, initialView = 'home' }) {
   const categories = config.categories;
   const navCategories = categories.filter((cat) => !cat.hideFromNav);
-  const [view, setView] = useState('home'); // 'home' | a category id
+  const [view, setView] = useState(initialView); // 'home' | a category id
   const activeCategory = categories.find((cat) => cat.id === view) || null;
   const mainRef = useRef(null);
 
+  // Switching category stays a client-side state change so it's instant, but
+  // the address bar is pushed along with it so every view has a shareable
+  // URL and browser back/forward move between them.
+  useEffect(() => {
+    function onPopState() {
+      const slug = window.location.pathname.replace(/^\/|\/$/g, '');
+      setView(viewForSlug(categories, slug) || 'home');
+    }
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [categories]);
+
   function selectView(v) {
     setView(v);
+    window.history.pushState({}, '', pathForView(v));
     mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
