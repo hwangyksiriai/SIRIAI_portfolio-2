@@ -9,6 +9,8 @@ export default function AdminPage() {
   const [selectedRegionKey, setSelectedRegionKey] = useState(null);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState(null);
+  const [saveError, setSaveError] = useState(null);
+  const [loadError, setLoadError] = useState(null);
   const [uploadingCount, setUploadingCount] = useState(0);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [highlightUploading, setHighlightUploading] = useState(false);
@@ -18,14 +20,33 @@ export default function AdminPage() {
 
   useEffect(() => {
     fetch('/api/admin/config')
-      .then((r) => r.json())
+      .then(async (r) => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+        return data;
+      })
       .then((data) => {
         setConfig(data);
         setSelectedId(data.categories[0]?.id);
         const first = data.categories[0];
         if (first?.regions) setSelectedRegionKey(first.regions[0].key);
-      });
+      })
+      .catch((err) => setLoadError(err.message));
   }, []);
+
+  if (loadError) {
+    return (
+      <div style={styles.loading}>
+        <div style={{ maxWidth: 420, textAlign: 'center' }}>
+          <p style={{ color: C.accent, fontWeight: 700, marginBottom: 8 }}>설정을 불러오지 못했습니다</p>
+          <p style={{ fontSize: 13, lineHeight: 1.6 }}>{loadError}</p>
+          <p style={{ fontSize: 12, marginTop: 12 }}>
+            데이터가 덮어써지지 않도록 편집을 막았습니다. 새로고침 후에도 같은 메시지가 뜨면 알려주세요.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (!config) {
     return <div style={styles.loading}>불러오는 중...</div>;
@@ -231,17 +252,33 @@ export default function AdminPage() {
 
   async function onSave() {
     setSaving(true);
-    const res = await fetch('/api/admin/config', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(config),
-    });
-    setSaving(false);
-    if (res.ok) {
-      setSavedAt(new Date().toLocaleTimeString('ko-KR'));
-    } else {
-      alert('저장에 실패했습니다');
+    setSaveError(null);
+    try {
+      const res = await fetch('/api/admin/config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config),
+      });
+      if (res.ok) {
+        setSavedAt(new Date().toLocaleTimeString('ko-KR'));
+      } else {
+        // Surface what the server actually said — a blanket "failed" hides
+        // whether this is an expired session, a missing Blob token, etc.
+        const detail = await res.text().catch(() => '');
+        let message = detail;
+        try {
+          message = JSON.parse(detail).error || detail;
+        } catch {}
+        setSaveError(
+          res.status === 401
+            ? '세션이 만료되었습니다. 다시 로그인해주세요.'
+            : `저장 실패 (${res.status}) ${message}`.trim()
+        );
+      }
+    } catch (err) {
+      setSaveError(`저장 실패: ${err.message}`);
     }
+    setSaving(false);
   }
 
   async function onLogout() {
@@ -302,7 +339,9 @@ export default function AdminPage() {
             style={styles.titleInput}
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {savedAt && <span style={styles.savedNote}>저장됨 {savedAt}</span>}
+            {saveError
+              ? <span style={styles.saveErrorNote}>{saveError}</span>
+              : savedAt && <span style={styles.savedNote}>저장됨 {savedAt}</span>}
             <button onClick={onSave} disabled={saving} style={styles.saveBtn}>
               {saving ? '저장 중...' : '저장'}
             </button>
@@ -430,6 +469,7 @@ const styles = {
   topBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 16 },
   titleInput: { fontSize: 22, fontWeight: 700, background: 'transparent', border: 'none', color: C.ink, borderBottom: `1px solid ${C.line}`, padding: '4px 0', flex: 1 },
   savedNote: { fontSize: 12, color: C.muted },
+  saveErrorNote: { fontSize: 12, color: C.accent, fontWeight: 600, maxWidth: 420, textAlign: 'right' },
   saveBtn: { background: C.accent, border: 'none', color: '#fff', fontWeight: 700, padding: '9px 20px', borderRadius: 999, cursor: 'pointer', fontSize: 13.5 },
   regionTabs: { display: 'flex', gap: 8, marginBottom: 12 },
   regionTab: { display: 'flex', alignItems: 'center', gap: 6, background: C.card, border: `1px solid ${C.line}`, color: C.muted, padding: '9px 16px', borderRadius: 999, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
