@@ -178,29 +178,6 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
   .app-main{ height:auto; overflow-y:visible; }
   .app-main-inner{ padding:24px 20px 150px; }
 }
-/* The contact bar is fixed over the feed, so on a phone it has to stay
-   short — a full-height three-row form would swallow a fifth of the
-   viewport and hide the videos behind it. */
-@media (max-width:900px){
-  .floating-bar-form{ gap:8px; padding:10px 14px; }
-  .floating-bar-pill{ padding:9px 18px; font-size:13px; gap:7px; }
-  .floating-bar-pill-arrow{ width:14px; height:14px; }
-  .floating-bar-fold{ top:6px; right:8px; width:22px; height:22px; }
-  .floating-bar-fold svg{ width:13px; height:13px; }
-  .floating-bar-copy{ font-size:12px; line-height:1.35; }
-  .floating-bar-row{ gap:8px; }
-  .floating-bar-input{ padding:8px 12px; font-size:12.5px; }
-  .floating-bar-submit{ padding:10px 20px; font-size:14px; }
-  .floating-bar-submit-arrow{ width:15px; height:15px; }
-}
-@media (max-width:520px){
-  /* Two inputs plus the button in one row leaves the fields too narrow to
-     type in, so the button drops to its own full-width line. */
-  .floating-bar-row{ flex-wrap:wrap; }
-  .floating-bar-input{ flex:1 1 40%; }
-  .floating-bar-submit{ flex:1 1 100%; }
-}
-
 /* Glass floating bar, echoing Apple Music's rounded mini-player pill. */
 /* Positioning lives on the dock so the bar itself can be either a
    full-width form or a small collapsed pill without moving. */
@@ -266,6 +243,33 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
 .floating-bar-submit-arrow{ width:18px; height:18px; stroke:#fff; flex:0 0 auto; }
 .floating-bar-error{ font-size:11.5px; color:var(--accent); text-align:center; }
 .floating-bar-done{ font-weight:700; }
+
+/* The contact bar is fixed over the feed, so on a phone it has to stay
+   short — a full-height three-row form would swallow a fifth of the
+   viewport and hide the videos behind it. */
+@media (max-width:900px){
+  .floating-bar-form{ gap:8px; padding:10px 14px; }
+  /* Phone: drop the label entirely and keep a 44px circle — the smallest
+     thing that is still a comfortable touch target. */
+  .floating-bar-pill{ width:44px; height:44px; padding:0; gap:0; border-radius:50%; }
+  .floating-bar-pill span{ display:none; }
+  .floating-bar-pill-arrow{ width:18px; height:18px; }
+  .floating-bar-fold{ top:6px; right:8px; width:22px; height:22px; }
+  .floating-bar-fold svg{ width:13px; height:13px; }
+  /* Keep the copy clear of the fold button in the corner. */
+  .floating-bar-copy{ font-size:12px; line-height:1.35; padding:0 24px; }
+  .floating-bar-row{ gap:8px; }
+  .floating-bar-input{ padding:8px 12px; font-size:12.5px; }
+  .floating-bar-submit{ padding:10px 20px; font-size:14px; }
+  .floating-bar-submit-arrow{ width:15px; height:15px; }
+}
+@media (max-width:520px){
+  /* Two inputs plus the button in one row leaves the fields too narrow to
+     type in, so the button drops to its own full-width line. */
+  .floating-bar-row{ flex-wrap:wrap; }
+  .floating-bar-input{ flex:1 1 40%; }
+  .floating-bar-submit{ flex:1 1 100%; }
+}
 
 /* Apple-Music-homage Home screen: full-bleed black hero, slides in from
    the right whenever "홈" is selected. */
