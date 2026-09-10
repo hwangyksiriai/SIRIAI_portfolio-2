@@ -182,8 +182,11 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
    short — a full-height three-row form would swallow a fifth of the
    viewport and hide the videos behind it. */
 @media (max-width:900px){
-  .floating-bar{ bottom:14px; }
   .floating-bar-form{ gap:8px; padding:10px 14px; }
+  .floating-bar-pill{ padding:9px 18px; font-size:13px; gap:7px; }
+  .floating-bar-pill-arrow{ width:14px; height:14px; }
+  .floating-bar-fold{ top:6px; right:8px; width:22px; height:22px; }
+  .floating-bar-fold svg{ width:13px; height:13px; }
   .floating-bar-copy{ font-size:12px; line-height:1.35; }
   .floating-bar-row{ gap:8px; }
   .floating-bar-input{ padding:8px 12px; font-size:12.5px; }
@@ -199,8 +202,15 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
 }
 
 /* Glass floating bar, echoing Apple Music's rounded mini-player pill. */
-.floating-bar{
+/* Positioning lives on the dock so the bar itself can be either a
+   full-width form or a small collapsed pill without moving. */
+.floating-dock{
   position:fixed; left:calc(300px + (100% - 330px)/4); right:calc(30px + (100% - 330px)/4); bottom:30px; z-index:40;
+  display:flex; justify-content:center; pointer-events:none;
+}
+.floating-bar{
+  position:relative; width:100%; pointer-events:auto;
+  animation:floating-bar-in .22s ease both;
   display:flex; align-items:center; justify-content:center;
   padding:15px 24px; text-align:center; border-radius:18px;
   font-family:var(--display); font-weight:600; font-size:14px; color:var(--ink);
@@ -208,7 +218,29 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
   border:1px solid rgba(255,255,255,.4);
   box-shadow:0 12px 32px -12px rgba(0,0,0,.18);
 }
-@media (max-width:900px){ .floating-bar{ left:20px; right:20px; } }
+@media (max-width:900px){ .floating-dock{ left:20px; right:20px; bottom:14px; } }
+@keyframes floating-bar-in{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
+
+/* Collapsed state: a pill just wide enough to read, so the feed stays visible. */
+.floating-bar-pill{
+  width:auto; gap:9px; padding:12px 22px; border-radius:999px; cursor:pointer;
+  font-family:var(--body); font-weight:800; font-size:15px; color:#fff;
+  background:var(--accent); border:none;
+  box-shadow:0 12px 30px -6px rgba(250,35,59,.6);
+  transition:filter .15s ease, transform .15s ease;
+}
+.floating-bar-pill:hover{ filter:brightness(1.08); transform:translateY(-1px); }
+.floating-bar-pill-arrow{ width:16px; height:16px; stroke:#fff; flex:0 0 auto; }
+/* Fold control sits in the form's corner rather than in the flow, so the
+   three rows keep their existing spacing. */
+.floating-bar-fold{
+  position:absolute; top:8px; right:10px; width:26px; height:26px; padding:0;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:999px; border:none; cursor:pointer;
+  background:rgba(23,19,16,.06); transition:background .15s ease;
+}
+.floating-bar-fold:hover{ background:rgba(23,19,16,.12); }
+.floating-bar-fold svg{ width:15px; height:15px; stroke:var(--muted); }
 
 .floating-bar-form{ flex-direction:column; gap:10px; padding:14px 20px; }
 .floating-bar-copy{ font-size:13.5px; font-weight:600; color:var(--ink); }

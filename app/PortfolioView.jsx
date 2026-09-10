@@ -205,6 +205,14 @@ function ContactBar({ category }) {
   const [brand, setBrand] = useState('');
   const [phone, setPhone] = useState('');
   const [status, setStatus] = useState('idle'); // 'idle' | 'sending' | 'done' | 'error'
+  // The form covers a fifth of a phone screen, so it starts folded there and
+  // only unfolds when tapped. On desktop there is room for it to stay open.
+  // Resolved after mount because the server has no viewport to measure.
+  const [open, setOpen] = useState(null);
+
+  useEffect(() => {
+    setOpen(!window.matchMedia('(max-width:900px)').matches);
+  }, []);
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -223,43 +231,76 @@ function ContactBar({ category }) {
     }
   }
 
+  if (open === null) return null;
+
   if (status === 'done') {
     return (
-      <div className="floating-bar floating-bar-done">
-        문의가 접수되었습니다.
+      <div className="floating-dock">
+        <div className="floating-bar floating-bar-done">문의가 접수되었습니다.</div>
+      </div>
+    );
+  }
+
+  if (!open) {
+    return (
+      <div className="floating-dock">
+        <button
+          type="button"
+          className="floating-bar floating-bar-pill"
+          onClick={() => setOpen(true)}
+          aria-expanded={false}
+        >
+          <span>Contact</span>
+          <svg className="floating-bar-pill-arrow" viewBox="0 0 24 24" fill="none" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 15l6-6 6 6" />
+          </svg>
+        </button>
       </div>
     );
   }
 
   return (
-    <form className="floating-bar floating-bar-form" onSubmit={onSubmit}>
-      <span className="floating-bar-copy">가장 쉬운 방법으로 감각적인 비주얼을 만나보세요</span>
-      <div className="floating-bar-row">
-        <input
-          className="floating-bar-input"
-          placeholder="브랜드명"
-          value={brand}
-          onChange={(e) => setBrand(e.target.value)}
-          maxLength={200}
-        />
-        <input
-          className="floating-bar-input"
-          placeholder="연락처"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          maxLength={50}
-        />
-        <button type="submit" className="floating-bar-submit" disabled={status === 'sending'}>
-          <span>{status === 'sending' ? '접수 중...' : 'Contact'}</span>
-          {status !== 'sending' && (
-            <svg className="floating-bar-submit-arrow" viewBox="0 0 24 24" fill="none" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M13 6l6 6-6 6" />
-            </svg>
-          )}
+    <div className="floating-dock">
+      <form className="floating-bar floating-bar-form" onSubmit={onSubmit}>
+        <button
+          type="button"
+          className="floating-bar-fold"
+          onClick={() => setOpen(false)}
+          aria-label="문의 폼 접기"
+          aria-expanded
+        >
+          <svg viewBox="0 0 24 24" fill="none" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 9l6 6 6-6" />
+          </svg>
         </button>
-      </div>
-      {status === 'error' && <span className="floating-bar-error">접수에 실패했어요. 다시 시도해주세요.</span>}
-    </form>
+        <span className="floating-bar-copy">가장 쉬운 방법으로 감각적인 비주얼을 만나보세요</span>
+        <div className="floating-bar-row">
+          <input
+            className="floating-bar-input"
+            placeholder="브랜드명"
+            value={brand}
+            onChange={(e) => setBrand(e.target.value)}
+            maxLength={200}
+          />
+          <input
+            className="floating-bar-input"
+            placeholder="연락처"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            maxLength={50}
+          />
+          <button type="submit" className="floating-bar-submit" disabled={status === 'sending'}>
+            <span>{status === 'sending' ? '접수 중...' : 'Contact'}</span>
+            {status !== 'sending' && (
+              <svg className="floating-bar-submit-arrow" viewBox="0 0 24 24" fill="none" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            )}
+          </button>
+        </div>
+        {status === 'error' && <span className="floating-bar-error">접수에 실패했어요. 다시 시도해주세요.</span>}
+      </form>
+    </div>
   );
 }
 
