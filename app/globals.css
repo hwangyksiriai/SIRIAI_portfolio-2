@@ -80,12 +80,15 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
 @media (max-width:900px){ .reel-strip{ grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; } }
 @media (max-width:560px){ .reel-strip{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } }
 
-.travel-grid{ grid-column:1/-1; align-self:start; display:flex; gap:var(--sp-md); justify-content:center; }
-.travel-col{ display:flex; flex-direction:column; gap:var(--sp-md); }
-.clip.landscape{ height:32vh; aspect-ratio:16/9; width:auto; flex:0 0 auto; }
+/* Sized from the container's width, not 32vh: deriving a 16/9 card's width
+   from the viewport HEIGHT made two of them wider than the feed on anything
+   tall and narrow — every tablet size overflowed by 29-418px and the right
+   column was clipped away by the feed's overflow-x:hidden. */
+.travel-grid{ grid-column:1/-1; align-self:start; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--sp-md); }
+.travel-col{ display:flex; flex-direction:column; gap:var(--sp-md); min-width:0; }
+.clip.landscape{ width:100%; height:auto; aspect-ratio:16/9; }
 @media (max-width:720px){
-  .travel-grid{ flex-direction:column; }
-  .clip.landscape{ height:auto; width:100%; }
+  .travel-grid{ grid-template-columns:minmax(0,1fr); }
 }
 
 .clip.empty{ background:transparent; border:1px dashed var(--line); }
@@ -344,6 +347,44 @@ button.cat-region-tab:hover{ color:var(--ink); }
   .cat-marquee-item-label{ font-size:24px; }
   .cat-region-tabs{ margin-bottom:10px; }
   .cat-region-tab{ padding:8px 16px; font-size:12.5px; }
+}
+
+
+/* ---- Tablets -------------------------------------------------------- *
+   Two bands sit between the phone and desktop rules. Below 900 the shell
+   stacks like a phone, which a portrait tablet needs too, but the phone's
+   compactions (3 columns, 24px marquee, an icon-only contact button) waste
+   an iPad's width — so they are walked back from 721px up. Above 900 the
+   desktop shell returns, yet the contact bar's desktop inset leaves it
+   only 347px wide at 1024px, squeezing the fields to 62px. */
+@media (min-width:721px) and (max-width:900px){
+  .app-main-inner{ padding:28px 28px 120px; }
+  .reel-strip{ grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
+  .cat-title{ font-size:28px; }
+  .cat-marquee-item-label{ font-size:32px; }
+  .cat-marquee-track, .cat-marquee-item{ gap:22px; }
+  /* Room for the label and for the form to stay one line. */
+  .floating-bar{ max-width:560px; }
+  .floating-bar-pill{ width:auto; height:auto; padding:12px 22px; border-radius:999px; gap:9px; font-size:15px; }
+  .floating-bar-pill span{ display:inline; }
+  .floating-bar-pill-arrow{ width:16px; height:16px; }
+  .floating-bar-form{ gap:10px; padding:14px 20px; }
+  .floating-bar-copy{ font-size:13px; padding:0 28px; }
+  .floating-bar-input{ padding:7px 12px; font-size:12.5px; }
+  .floating-bar-submit{ padding:13px 30px; font-size:15px; }
+  .floating-bar-fold{ top:8px; right:10px; width:26px; height:26px; }
+  .floating-bar-fold svg{ width:15px; height:15px; }
+}
+/* Carried to 1400 so the width the bar lands on when the desktop inset
+   takes over (~535px there) matches the cap, instead of jumping. */
+@media (min-width:901px) and (max-width:1400px){
+  .floating-dock{ left:284px; right:24px; }
+  .floating-bar{ max-width:560px; }
+}
+@media (min-width:901px) and (max-width:1200px){
+  .cat-marquee-item-label{ font-size:32px; }
+  .cat-marquee-track, .cat-marquee-item{ gap:22px; }
+  .app-main-inner{ padding:32px 36px 130px; }
 }
 
 /* Decorative spotlight sweep: a second identical text track, gradient-
