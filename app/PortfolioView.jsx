@@ -3,68 +3,104 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { pathForView, viewForSlug } from '@/lib/slugs';
+import mediaManifest from '@/lib/media-manifest.json';
 
 const BRAND_SYMBOL = '/media/brand/symbol-black.png';
 const BRAND_WORDMARK = '/media/brand/logo-wordmark.png';
 const BRAND_WORDMARK_GREY = '/media/brand/logo-wordmark-grey.png';
 
-/* 1x1 transparent GIF. Without a poster, mobile browsers paint their own grey
-   play-button placeholder until the first frame decodes; this hands them an
-   invisible one so the card background shows through instead. */
-const BLANK_POSTER =
-  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+// Content-hashed local derivatives; live Blob entries may provide their own URLs.
 
-function Clip({ src, landscape, badge }) {
-  const cls = 'clip' + (landscape ? ' landscape' : '') + (src ? '' : ' empty');
+function Clip({ src, poster, preview, landscape, badge }) {
+  const media = mediaManifest[src] || {};
+  const posterUrl = poster || media.poster;
+  const previewUrl = preview || media.preview || src;
   const ref = useRef(null);
   const videoRef = useRef(null);
-  const [visible, setVisible] = useState(false);
+  const dialogRef = useRef(null);
+  const [started, setStarted] = useState(false);
+  const [inView, setInView] = useState(false);
+  const [pageVisible, setPageVisible] = useState(true);
   const [ready, setReady] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const originalRef = useRef(null);
+  const posterRef = useRef(null);
+  const [posterLoaded, setPosterLoaded] = useState(false);
 
   useEffect(() => {
+    setStarted(false);
+    setPosterLoaded(!!posterRef.current?.complete && posterRef.current.naturalWidth > 0);
+    setReady(false);
+    setInView(false);
     if (!src || !ref.current) return;
-    const el = ref.current;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: '400px' }
-    );
-    observer.observe(el);
+    const observer = new IntersectionObserver(([entry]) => {
+      setInView(entry.isIntersecting && entry.intersectionRatio > 0);
+    }, { rootMargin: '0px', threshold: [0, 0.01] });
+    observer.observe(ref.current);
     return () => observer.disconnect();
   }, [src]);
 
-  // A cached video can reach HAVE_CURRENT_DATA before React attaches the
-  // handlers below, which would leave it faded out for good.
   useEffect(() => {
-    if (visible && videoRef.current && videoRef.current.readyState >= 2) setReady(true);
-  }, [visible]);
+    const update = () => {
+      const visible = document.visibilityState === 'visible';
+      setPageVisible(visible);
+      if (!visible) originalRef.current?.pause();
+    };
+    const retryPoster = () => {
+      if (posterRef.current && !posterRef.current.naturalWidth && posterUrl) {
+        posterRef.current.src = posterUrl;
+      }
+    };
+    update();
+    document.addEventListener('visibilitychange', update);
+    window.addEventListener('online', retryPoster);
+    return () => {
+      document.removeEventListener('visibilitychange', update);
+      window.removeEventListener('online', retryPoster);
+    };
+  }, [posterUrl]);
+
+  useEffect(() => {
+    const shouldPlay = inView && pageVisible && !expanded && (!posterUrl || posterLoaded);
+    if (shouldPlay) setStarted(true);
+    const video = videoRef.current;
+    if (!video) return;
+    if (shouldPlay) {
+      // A rejected autoplay stays on its poster; retry when online or visible again.
+      const play = () => {
+        if (video.error) video.load();
+        video.play().catch(() => {});
+      };
+      play();
+      window.addEventListener('online', play);
+      return () => { window.removeEventListener('online', play); video.pause(); };
+    }
+    video.pause();
+  }, [inView, pageVisible, started, expanded, posterUrl, posterLoaded]);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (expanded) dialog?.showModal();
+    else dialog?.close();
+  }, [expanded]);
 
   return (
-    <div className={cls} ref={ref}>
+    <div className={'clip' + (landscape ? ' landscape' : '') + (src ? '' : ' empty')} ref={ref}>
       {badge && <span className="clip-badge">{badge}</span>}
-      {src ? (
-        visible && (
-          <video
-            ref={videoRef}
-            className={'fill' + (ready ? ' ready' : '')}
-            src={src}
-            poster={BLANK_POSTER}
-            preload="auto"
-            autoPlay
-            muted
-            loop
-            playsInline
-            onLoadedData={() => setReady(true)}
-            onCanPlay={() => setReady(true)}
-          />
-        )
-      ) : (
-        <span className="slot-msg"><span className="plus">+</span><span className="label">준비중</span></span>
-      )}
+      {src ? <>
+        <span className="clip-fallback" aria-hidden="true">SIRIAI</span>
+        {posterUrl && <img ref={posterRef} className="fill clip-poster" src={posterUrl} alt="" loading="lazy" decoding="async" onLoad={() => setPosterLoaded(true)} onError={() => setPosterLoaded(true)} />}
+        {started && <video ref={videoRef} className={'fill' + (ready ? ' ready' : '')}
+          src={previewUrl} poster={posterUrl} preload="none" muted loop playsInline
+          onLoadedData={() => setReady(true)} onError={() => setReady(false)} />}
+        <button className="clip-expand" type="button" aria-label="원본 영상 확대" onClick={() => setExpanded(true)}>확대</button>
+        <dialog ref={dialogRef} className="clip-dialog" aria-label="원본 영상" onCancel={() => setExpanded(false)} onClose={() => setExpanded(false)}>
+          {expanded && <>
+            <button type="button" onClick={() => setExpanded(false)}>닫기</button>
+            <video ref={originalRef} src={src} poster={posterUrl} controls playsInline preload="metadata" />
+          </>}
+        </dialog>
+      </> : <span className="slot-msg"><span className="plus">+</span><span className="label">준비중</span></span>}
     </div>
   );
 }
@@ -84,7 +120,7 @@ function ClipGrid({ layout, clips }) {
             return (
               <div className="travel-col" key={colIndex}>
                 {(colItems.length ? colItems : [{}]).map((item, i) => (
-                  <Clip key={i} src={item.src} badge={item.badge} landscape />
+                  <Clip key={i} src={item.src} poster={item.poster} preview={item.preview} badge={item.badge} landscape />
                 ))}
               </div>
             );
@@ -93,7 +129,7 @@ function ClipGrid({ layout, clips }) {
       ) : (
         <div className="reel-strip">
           {(items.length ? items : [{}]).map((item, i) => (
-            <Clip key={i} src={item.src} badge={item.badge} />
+            <Clip key={i} src={item.src} poster={item.poster} preview={item.preview} badge={item.badge} />
           ))}
         </div>
       )}
