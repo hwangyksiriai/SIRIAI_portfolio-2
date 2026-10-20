@@ -22,6 +22,10 @@ export default function AdminPage() {
   const [loadError, setLoadError] = useState(null);
   const [uploadingCount, setUploadingCount] = useState(0);
   const [uploadFailures, setUploadFailures] = useState([]);
+  // null until we know; false when this deployment has no old store to
+  // import from (the usual case), otherwise { files } or { error }.
+  const [importInfo, setImportInfo] = useState(null);
+  const [importRun, setImportRun] = useState(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [highlightUploading, setHighlightUploading] = useState(false);
   const [dragOverCatId, setDragOverCatId] = useState(null);
@@ -32,6 +36,16 @@ export default function AdminPage() {
   const selectAnchor = useRef(null);
   const dragSource = useRef(null);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    fetch('/api/admin/import')
+      .then(async (r) => {
+        if (r.status === 404) return setImportInfo(false);
+        const data = await r.json().catch(() => ({}));
+        setImportInfo(r.ok ? { files: data.files } : { error: data.error || `HTTP ${r.status}` });
+      })
+      .catch(() => setImportInfo(false));
+  }, []);
 
   useEffect(() => {
     setSelectedClips(new Set());
@@ -374,6 +388,59 @@ export default function AdminPage() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
+  async function runImport() {
+    const files = importInfo.files;
+    if (!window.confirm(
+      `기존 저장소의 영상·사진 ${files.length}개와 설정을 이 저장소로 복사합니다.\n` +
+      '이 사이트에 지금 있는 설정은 기존 설정으로 덮어써집니다. 진행할까요?'
+    )) return;
+
+    const map = {};
+    const failures = [];
+    let done = 0;
+    setImportRun({ phase: 'copy', done, total: files.length, failures });
+    const queue = files.slice();
+    // A few at a time: fast enough for hundreds of clips without piling
+    // long video copies onto the server at once.
+    await Promise.all(Array.from({ length: 3 }, async () => {
+      while (queue.length) {
+        const url = queue.shift();
+        try {
+          const res = await fetch('/api/admin/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'copy', url }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+          map[url] = data.url;
+        } catch (err) {
+          failures.push({ name: decodeURIComponent(new URL(url).pathname.split('/').pop()), message: err.message });
+        }
+        done += 1;
+        setImportRun({ phase: 'copy', done, total: files.length, failures: failures.slice() });
+      }
+    }));
+
+    setImportRun({ phase: 'finish', done, total: files.length, failures: failures.slice() });
+    try {
+      const res = await fetch('/api/admin/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'finish', map }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      const fresh = await fetch('/api/admin/config').then((r) => r.json());
+      setConfig(fresh);
+      setSelectedId(fresh.categories[0]?.id);
+      setSelectedRegionKey(fresh.categories[0]?.regions ? fresh.categories[0].regions[0].key : null);
+      setImportRun({ phase: 'done', done, total: files.length, failures: failures.slice() });
+    } catch (err) {
+      setImportRun({ phase: 'error', done, total: files.length, failures: failures.slice(), error: err.message });
+    }
+  }
+
   async function onSave() {
     setSaving(true);
     setSaveError(null);
@@ -471,6 +538,42 @@ export default function AdminPage() {
             </button>
           </div>
         </div>
+
+        {importInfo && (
+          <div style={styles.importBox}>
+            <b>기존 저장소에서 가져오기</b>
+            {importInfo.error ? (
+              <p style={styles.importText}>기존 저장소를 읽지 못했습니다: {importInfo.error}</p>
+            ) : !importRun ? (
+              <>
+                <p style={styles.importText}>
+                  예전 프로젝트의 영상·사진 {importInfo.files.length}개와 설정을 이 프로젝트 저장소로 복사합니다.
+                  가져오기 전에는 이 화면에서 저장을 누르지 마세요 — 지금 보이는 건 샘플일 수 있습니다.
+                </p>
+                <button onClick={runImport} style={styles.moveBtn}>가져오기 시작</button>
+              </>
+            ) : (
+              <>
+                <p style={styles.importText}>
+                  {importRun.phase === 'copy' && `복사 중 ${importRun.done} / ${importRun.total} — 끝날 때까지 이 창을 닫지 마세요.`}
+                  {importRun.phase === 'finish' && '설정 저장 중...'}
+                  {importRun.phase === 'done' && (importRun.failures.length
+                    ? `완료. ${importRun.total - importRun.failures.length}개 복사, ${importRun.failures.length}개 실패 — 실패한 것은 아직 예전 주소를 쓰고 있어요. 다시 가져오기를 누르면 재시도합니다.`
+                    : `완료. ${importRun.total}개 모두 복사했고 설정도 저장했습니다. 사이트를 확인한 뒤 Vercel에서 OLD_BLOB_READ_WRITE_TOKEN을 지우세요.`)}
+                  {importRun.phase === 'error' && `설정 저장 실패: ${importRun.error}`}
+                </p>
+                {(importRun.phase === 'done' || importRun.phase === 'error') && (
+                  <button onClick={runImport} style={styles.clearSelectionBtn}>다시 가져오기</button>
+                )}
+                {importRun.failures.length > 0 && (
+                  <ul style={styles.uploadFailList}>
+                    {importRun.failures.map((f, i) => <li key={f.name + i}><b>{f.name}</b> — {f.message}</li>)}
+                  </ul>
+                )}
+              </>
+            )}
+          </div>
+        )}
 
         <div style={styles.highlightBox}>
           <div style={styles.highlightThumb}>
@@ -661,6 +764,8 @@ const styles = {
   selectionCount: { fontSize: 13, marginRight: 4 },
   moveBtn: { background: C.accent, border: 'none', color: '#fff', fontWeight: 700, padding: '8px 16px', borderRadius: 999, cursor: 'pointer', fontSize: 13 },
   clearSelectionBtn: { background: 'transparent', border: `1px solid ${C.line}`, color: C.muted, padding: '8px 14px', borderRadius: 999, cursor: 'pointer', fontSize: 12.5 },
+  importBox: { border: `1px solid ${C.accent}`, background: C.accentSoft, borderRadius: 10, padding: '14px 16px', marginBottom: 16, fontSize: 13 },
+  importText: { color: C.ink, margin: '6px 0 10px', lineHeight: 1.6 },
   uploadFailBox: { border: `1px solid ${C.accent}`, background: C.accentSoft, borderRadius: 10, padding: '12px 16px', marginBottom: 16, fontSize: 12.5 },
   uploadFailHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, color: C.accent },
   uploadFailHint: { color: C.muted, margin: '6px 0 8px' },
