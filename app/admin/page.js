@@ -3,6 +3,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { upload } from '@vercel/blob/client';
 
+/* Storage paths stay ASCII: the original name (often Korean) is not needed
+   once uploaded, and a plain path keeps it out of URLs and request headers. */
+function storageName(fileName) {
+  const dot = fileName.lastIndexOf('.');
+  const ext = dot > 0 ? fileName.slice(dot).toLowerCase().replace(/[^a-z0-9.]/g, '') : '';
+  const base = (dot > 0 ? fileName.slice(0, dot) : fileName).replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '');
+  return `${base || 'clip'}${ext}`;
+}
+
 export default function AdminPage() {
   const [config, setConfig] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
@@ -12,6 +21,7 @@ export default function AdminPage() {
   const [saveError, setSaveError] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [uploadingCount, setUploadingCount] = useState(0);
+  const [uploadFailures, setUploadFailures] = useState([]);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [highlightUploading, setHighlightUploading] = useState(false);
   const [dragOverCatId, setDragOverCatId] = useState(null);
@@ -332,20 +342,34 @@ export default function AdminPage() {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
     setUploadingCount(files.length);
+    setUploadFailures([]);
     const uploaded = [];
+    const failures = [];
     for (const file of files) {
       try {
-        const blob = await upload(`media/${selectedId}/${Date.now()}-${file.name}`, file, {
+        const blob = await upload(`media/${selectedId}/${Date.now()}-${storageName(file.name)}`, file, {
           access: 'public',
           handleUploadUrl: '/api/admin/upload',
+          // Sent in parts, each retried on its own, so a long video doesn't
+          // fail outright on one dropped request.
+          multipart: true,
         });
         uploaded.push(blob.url);
       } catch (err) {
         console.error('upload failed', file.name, err);
-        alert(`업로드 실패: ${file.name}`);
+        const message = err?.message || String(err);
+        failures.push({
+          name: file.name,
+          message: /client token/i.test(message)
+            ? `${message} (로그인이 만료됐을 수 있어요. 다시 로그인한 뒤 올려주세요)`
+            : message,
+        });
       }
       setUploadingCount((c) => c - 1);
     }
+    // One summary on the page instead of a blocking alert per file — a bulk
+    // upload with a recurring failure otherwise means clicking through dozens.
+    setUploadFailures(failures);
     updateClips([...clips, ...uploaded]);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
@@ -531,6 +555,21 @@ export default function AdminPage() {
           </div>
         )}
 
+        {uploadFailures.length > 0 && (
+          <div style={styles.uploadFailBox}>
+            <div style={styles.uploadFailHead}>
+              <b>{uploadFailures.length}개 업로드 실패</b>
+              <button onClick={() => setUploadFailures([])} style={styles.clearSelectionBtn}>닫기</button>
+            </div>
+            <p style={styles.uploadFailHint}>나머지는 그대로 추가됐어요. 아래 이유를 확인한 뒤 실패한 파일만 다시 올려주세요.</p>
+            <ul style={styles.uploadFailList}>
+              {uploadFailures.map((f, i) => (
+                <li key={f.name + i}><b>{f.name}</b> — {f.message}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div style={styles.clipGrid}>
           {clips.map((src, i) => (
             <div
@@ -622,6 +661,10 @@ const styles = {
   selectionCount: { fontSize: 13, marginRight: 4 },
   moveBtn: { background: C.accent, border: 'none', color: '#fff', fontWeight: 700, padding: '8px 16px', borderRadius: 999, cursor: 'pointer', fontSize: 13 },
   clearSelectionBtn: { background: 'transparent', border: `1px solid ${C.line}`, color: C.muted, padding: '8px 14px', borderRadius: 999, cursor: 'pointer', fontSize: 12.5 },
+  uploadFailBox: { border: `1px solid ${C.accent}`, background: C.accentSoft, borderRadius: 10, padding: '12px 16px', marginBottom: 16, fontSize: 12.5 },
+  uploadFailHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, color: C.accent },
+  uploadFailHint: { color: C.muted, margin: '6px 0 8px' },
+  uploadFailList: { margin: 0, paddingLeft: 18, lineHeight: 1.7, maxHeight: 160, overflowY: 'auto', wordBreak: 'break-all' },
   hint: { fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 },
   clipGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 14 },
   clipCard: { position: 'relative', background: C.card, borderWidth: 1, borderStyle: 'solid', borderColor: C.line, borderRadius: 10, overflow: 'hidden', cursor: 'grab', userSelect: 'none' },
