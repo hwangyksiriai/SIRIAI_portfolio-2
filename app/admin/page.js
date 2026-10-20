@@ -15,8 +15,18 @@ export default function AdminPage() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [highlightUploading, setHighlightUploading] = useState(false);
   const [dragOverCatId, setDragOverCatId] = useState(null);
+  const [dragOverRegionKey, setDragOverRegionKey] = useState(null);
+  // Indices into the clips of the tab on screen, so they are dropped
+  // whenever that list is switched or reshuffled.
+  const [selectedClips, setSelectedClips] = useState(() => new Set());
+  const selectAnchor = useRef(null);
   const dragSource = useRef(null);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    setSelectedClips(new Set());
+    selectAnchor.current = null;
+  }, [selectedId, selectedRegionKey]);
 
   useEffect(() => {
     fetch('/api/admin/config')
@@ -54,9 +64,9 @@ export default function AdminPage() {
 
   const category = config.categories.find((c) => c.id === selectedId);
   const hasRegions = Array.isArray(category?.regions) && category.regions.length > 0;
-  const clips = hasRegions
-    ? category.regions.find((r) => r.key === selectedRegionKey)?.clips || []
-    : category?.clips || [];
+  const region = hasRegions ? category.regions.find((r) => r.key === selectedRegionKey) : null;
+  const clips = hasRegions ? region?.clips || [] : category?.clips || [];
+  const otherRegions = hasRegions ? category.regions.filter((r) => r.key !== selectedRegionKey) : [];
 
   function updateClips(newClips) {
     setConfig((prev) => {
@@ -88,6 +98,74 @@ export default function AdminPage() {
       return next;
     });
     setSelectedRegionKey('abroad');
+  }
+
+  function addRegion() {
+    const label = window.prompt('새 탭 이름')?.trim();
+    if (!label) return;
+    const key = `tab-${Date.now().toString(36)}`;
+    setConfig((prev) => {
+      const next = structuredClone(prev);
+      next.categories.find((c) => c.id === selectedId).regions.push({ key, label, clips: [] });
+      return next;
+    });
+    setSelectedRegionKey(key);
+  }
+
+  function updateRegionLabel(label) {
+    setConfig((prev) => {
+      const next = structuredClone(prev);
+      const cat = next.categories.find((c) => c.id === selectedId);
+      cat.regions.find((r) => r.key === selectedRegionKey).label = label;
+      return next;
+    });
+  }
+
+  // Only offered for an empty tab, so nothing can be lost with it.
+  function removeRegion() {
+    setConfig((prev) => {
+      const next = structuredClone(prev);
+      const cat = next.categories.find((c) => c.id === selectedId);
+      cat.regions = cat.regions.filter((r) => r.key !== selectedRegionKey);
+      return next;
+    });
+    setSelectedRegionKey(otherRegions[0].key);
+  }
+
+  function clearSelection() {
+    setSelectedClips(new Set());
+    selectAnchor.current = null;
+  }
+
+  function onClipClick(index, shiftKey) {
+    if (otherRegions.length === 0) return;
+    const next = new Set(selectedClips);
+    if (shiftKey && selectAnchor.current != null) {
+      const from = Math.min(selectAnchor.current, index);
+      const to = Math.max(selectAnchor.current, index);
+      for (let i = from; i <= to; i++) next.add(i);
+    } else if (next.has(index)) {
+      next.delete(index);
+    } else {
+      next.add(index);
+    }
+    selectAnchor.current = index;
+    setSelectedClips(next);
+  }
+
+  // Moves keep their on-screen order and land at the end of the target tab.
+  function moveSelectedTo(regionKey) {
+    const picked = selectedClips;
+    setConfig((prev) => {
+      const next = structuredClone(prev);
+      const cat = next.categories.find((c) => c.id === selectedId);
+      const from = cat.regions.find((r) => r.key === selectedRegionKey);
+      const to = cat.regions.find((r) => r.key === regionKey);
+      to.clips = [...(to.clips || []), ...from.clips.filter((_, i) => picked.has(i))];
+      from.clips = from.clips.filter((_, i) => !picked.has(i));
+      return next;
+    });
+    clearSelection();
   }
 
   function updateCategoryTitle(title) {
@@ -156,6 +234,7 @@ export default function AdminPage() {
     const next = clips.slice();
     next.splice(index, 1);
     updateClips(next);
+    clearSelection();
   }
 
   function onDragStart(index) {
@@ -176,8 +255,28 @@ export default function AdminPage() {
       const [moved] = next.splice(src.index, 1);
       next.splice(index, 0, moved);
       updateClips(next);
+      clearSelection();
     } else {
       moveClipAcrossPages(src, { catId: selectedId, regionKey: selectedRegionKey, index });
+    }
+  }
+
+  function onRegionDragOver(e, regionKey) {
+    if (!dragSource.current || regionKey === selectedRegionKey) return;
+    e.preventDefault();
+    setDragOverRegionKey(regionKey);
+  }
+
+  // Dropping a selected card on a tab carries the whole selection with it.
+  function onRegionDrop(regionKey) {
+    const src = dragSource.current;
+    dragSource.current = null;
+    setDragOverRegionKey(null);
+    if (!src || regionKey === selectedRegionKey) return;
+    if (src.catId === selectedId && src.regionKey === selectedRegionKey && selectedClips.has(src.index)) {
+      moveSelectedTo(regionKey);
+    } else {
+      moveClipAcrossPages(src, { catId: selectedId, regionKey, index: null });
     }
   }
 
@@ -209,6 +308,7 @@ export default function AdminPage() {
       }
       return next;
     });
+    clearSelection();
   }
 
   function onSidebarDragOver(e, catId) {
@@ -373,22 +473,37 @@ export default function AdminPage() {
                 <button
                   key={r.key}
                   onClick={() => setSelectedRegionKey(r.key)}
+                  onDragOver={(e) => onRegionDragOver(e, r.key)}
+                  onDragLeave={() => setDragOverRegionKey((cur) => (cur === r.key ? null : cur))}
+                  onDrop={() => onRegionDrop(r.key)}
                   style={{
                     ...styles.regionTab,
                     ...(r.key === selectedRegionKey ? styles.regionTabActive : {}),
+                    ...(r.key === dragOverRegionKey ? styles.regionTabDragOver : {}),
                   }}
                 >
                   {r.label}
-                  <span style={styles.regionTabCount}>{category.regions.find((x) => x.key === r.key)?.clips.length || 0}</span>
+                  <span style={styles.regionTabCount}>{r.clips?.length || 0}</span>
                 </button>
               ))}
-              {!category.regions.some((r) => r.key === 'abroad') && (
-                <button onClick={addAbroadRegion} style={styles.regionTabAdd}>+ 해외 추가</button>
+              <button onClick={addRegion} style={styles.regionTabAdd}>+ 탭 추가</button>
+            </div>
+            <div style={styles.regionEdit}>
+              <label style={styles.regionEditLabel}>
+                탭 이름
+                <input
+                  value={region?.label || ''}
+                  onChange={(e) => updateRegionLabel(e.target.value)}
+                  style={styles.regionEditInput}
+                />
+              </label>
+              {clips.length === 0 && otherRegions.length > 0 && (
+                <button onClick={removeRegion} style={styles.smallRemoveBtn}>빈 탭 삭제</button>
               )}
             </div>
             <p style={styles.hint}>
-              지금 <b style={{ color: C.accent }}>{category.regions.find((r) => r.key === selectedRegionKey)?.label}</b> 탭이 선택되어 있습니다.
-              여기서 영상을 추가하면 이 지역으로 들어가요. 실제 사이트에서도 이 탭 이름 그대로 국내/해외(또는 국가별) 버튼으로 보여집니다.
+              지금 <b style={{ color: C.accent }}>{region?.label}</b> 탭이 선택되어 있습니다.
+              여기서 영상을 추가하면 이 탭으로 들어가요. 실제 사이트에도 이 탭 이름 그대로 버튼으로 보여지고, 비어 있는 탭은 사이트에 나타나지 않습니다.
             </p>
           </>
         )}
@@ -399,7 +514,22 @@ export default function AdminPage() {
           </div>
         )}
 
-        <p style={styles.hint}>카드를 드래그해서 순서를 바꾸세요. 왼쪽 페이지 목록으로 드래그하면 해당 페이지로 영상이 이동합니다. 영상을 추가하려면 아래 버튼을 누르세요.</p>
+        <p style={styles.hint}>
+          카드를 드래그해서 순서를 바꾸세요. 왼쪽 페이지 목록으로 드래그하면 해당 페이지로 영상이 이동합니다. 영상을 추가하려면 아래 버튼을 누르세요.
+          {otherRegions.length > 0 && ' 다른 탭으로 옮기려면 카드를 클릭해 선택하고(Shift+클릭으로 범위 선택) 위에 뜨는 이동 버튼을 누르거나, 카드를 탭 위로 드래그하세요.'}
+        </p>
+
+        {selectedClips.size > 0 && (
+          <div style={styles.selectionBar}>
+            <b style={styles.selectionCount}>{selectedClips.size}개 선택됨</b>
+            {otherRegions.map((r) => (
+              <button key={r.key} onClick={() => moveSelectedTo(r.key)} style={styles.moveBtn}>
+                {r.label} 탭으로 이동
+              </button>
+            ))}
+            <button onClick={clearSelection} style={styles.clearSelectionBtn}>선택 해제</button>
+          </div>
+        )}
 
         <div style={styles.clipGrid}>
           {clips.map((src, i) => (
@@ -409,15 +539,20 @@ export default function AdminPage() {
               onDragStart={() => onDragStart(i)}
               onDragOver={onDragOver}
               onDrop={() => onDrop(i)}
-              style={styles.clipCard}
+              onClick={(e) => onClipClick(i, e.shiftKey)}
+              style={{
+                ...styles.clipCard,
+                ...(selectedClips.has(i) ? styles.clipCardSelected : {}),
+              }}
             >
+              {selectedClips.has(i) && <span style={styles.clipCheck}>✓</span>}
               <video src={src} muted loop playsInline style={styles.clipVideo}
                 onMouseEnter={(e) => e.currentTarget.play()}
                 onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
               />
               <div style={styles.clipFooter}>
                 <span style={styles.clipIndex}>{i + 1}</span>
-                <button onClick={() => removeClip(i)} style={styles.removeBtn}>삭제</button>
+                <button onClick={(e) => { e.stopPropagation(); removeClip(i); }} style={styles.removeBtn}>삭제</button>
               </div>
             </div>
           ))}
@@ -460,7 +595,10 @@ const styles = {
   highlightBox: { display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', marginBottom: 16, border: `1px solid ${C.line}`, borderRadius: 10, background: C.card },
   highlightThumb: { width: 56, height: 56, borderRadius: '50%', overflow: 'hidden', background: C.line, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' },
   highlightThumbEmpty: { fontSize: 10, color: C.muted },
-  navItem: { display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', background: 'transparent', border: '1px solid transparent', color: C.ink, padding: '9px 10px', borderRadius: 10, cursor: 'pointer', fontSize: 13.5, fontWeight: 500 },
+  // Borders below are spelled out as longhands: the active/selected/drag-over
+  // variants override borderColor, and React clearing that override on a
+  // `border` shorthand leaves the border in the text color instead.
+  navItem: { display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', background: 'transparent', borderWidth: 1, borderStyle: 'solid', borderColor: 'transparent', color: C.ink, padding: '9px 10px', borderRadius: 10, cursor: 'pointer', fontSize: 13.5, fontWeight: 500 },
   navItemActive: { background: C.accentSoft, color: C.accent, fontWeight: 700 },
   navItemDragOver: { borderColor: C.accent, background: C.accentSoft, color: C.accent },
   navItemIdx: { fontSize: 11, color: C.accent, fontVariantNumeric: 'tabular-nums' },
@@ -472,13 +610,23 @@ const styles = {
   saveErrorNote: { fontSize: 12, color: C.accent, fontWeight: 600, maxWidth: 420, textAlign: 'right' },
   saveBtn: { background: C.accent, border: 'none', color: '#fff', fontWeight: 700, padding: '9px 20px', borderRadius: 999, cursor: 'pointer', fontSize: 13.5 },
   regionTabs: { display: 'flex', gap: 8, marginBottom: 12 },
-  regionTab: { display: 'flex', alignItems: 'center', gap: 6, background: C.card, border: `1px solid ${C.line}`, color: C.muted, padding: '9px 16px', borderRadius: 999, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
+  regionTab: { display: 'flex', alignItems: 'center', gap: 6, background: C.card, borderWidth: 1, borderStyle: 'solid', borderColor: C.line, color: C.muted, padding: '9px 16px', borderRadius: 999, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
   regionTabActive: { color: '#fff', borderColor: C.accent, background: C.accent },
   regionTabCount: { fontSize: 11, opacity: .75, fontVariantNumeric: 'tabular-nums' },
+  regionTabDragOver: { borderColor: C.accent, borderStyle: 'dashed', color: C.accent, background: C.accentSoft },
   regionTabAdd: { background: 'transparent', border: `1px dashed ${C.line}`, color: C.muted, padding: '9px 16px', borderRadius: 999, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
+  regionEdit: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 },
+  regionEditLabel: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: C.muted },
+  regionEditInput: { fontSize: 13, color: C.ink, background: C.bg, border: `1px solid ${C.line}`, borderRadius: 8, padding: '6px 10px', width: 140 },
+  selectionBar: { position: 'sticky', top: -28, zIndex: 2, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, margin: '0 -28px 16px', padding: '12px 28px', background: C.bg, borderBottom: `1px solid ${C.line}` },
+  selectionCount: { fontSize: 13, marginRight: 4 },
+  moveBtn: { background: C.accent, border: 'none', color: '#fff', fontWeight: 700, padding: '8px 16px', borderRadius: 999, cursor: 'pointer', fontSize: 13 },
+  clearSelectionBtn: { background: 'transparent', border: `1px solid ${C.line}`, color: C.muted, padding: '8px 14px', borderRadius: 999, cursor: 'pointer', fontSize: 12.5 },
   hint: { fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 },
   clipGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 14 },
-  clipCard: { background: C.card, border: `1px solid ${C.line}`, borderRadius: 10, overflow: 'hidden', cursor: 'grab' },
+  clipCard: { position: 'relative', background: C.card, borderWidth: 1, borderStyle: 'solid', borderColor: C.line, borderRadius: 10, overflow: 'hidden', cursor: 'grab', userSelect: 'none' },
+  clipCardSelected: { borderColor: C.accent, boxShadow: `0 0 0 2px ${C.accent}` },
+  clipCheck: { position: 'absolute', top: 8, left: 8, zIndex: 1, width: 22, height: 22, borderRadius: '50%', background: C.accent, color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' },
   clipVideo: { width: '100%', aspectRatio: '9/16', objectFit: 'cover', background: '#000' },
   clipFooter: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px' },
   clipIndex: { fontSize: 11, color: C.muted },

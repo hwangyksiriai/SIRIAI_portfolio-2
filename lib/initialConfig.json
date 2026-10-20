@@ -11,14 +11,19 @@
       "layout": "reel",
       "regions": [
         {
-          "key": "domestic",
-          "label": "국내",
+          "key": "color",
+          "label": "색조",
           "clips": [
             "/media/beauty/lee-jerin.mp4",
             "/media/beauty/yoon-hyerin.mp4",
             "/media/beauty/kim-hani.mp4",
             "/media/beauty/hyeonmyeong-2.mp4"
           ]
+        },
+        {
+          "key": "skin",
+          "label": "스킨",
+          "clips": []
         },
         {
           "key": "abroad",
