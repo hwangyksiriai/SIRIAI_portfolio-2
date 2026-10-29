@@ -20,6 +20,7 @@ export default function AdminPage() {
   const [savedAt, setSavedAt] = useState(null);
   const [saveError, setSaveError] = useState(null);
   const [loadError, setLoadError] = useState(null);
+  const [configSource, setConfigSource] = useState(null);
   const [uploadingCount, setUploadingCount] = useState(0);
   const [uploadFailures, setUploadFailures] = useState([]);
   // null until we know; false when this deployment has no old store to
@@ -57,6 +58,7 @@ export default function AdminPage() {
       .then(async (r) => {
         const data = await r.json();
         if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+        setConfigSource(r.headers.get('X-Config-Source'));
         return data;
       })
       .then((data) => {
@@ -442,6 +444,10 @@ export default function AdminPage() {
   }
 
   async function onSave() {
+    if (configSource === 'seed' && !window.confirm(
+      '이 저장소에는 저장된 영상 목록이 없어서 지금 화면은 샘플 데이터입니다.\n' +
+      '저장하면 이 샘플이 실제 사이트 목록이 됩니다. 정말 저장할까요?'
+    )) return;
     setSaving(true);
     setSaveError(null);
     try {
@@ -452,6 +458,7 @@ export default function AdminPage() {
       });
       if (res.ok) {
         setSavedAt(new Date().toLocaleTimeString('ko-KR'));
+        setConfigSource('blob');
       } else {
         // Surface what the server actually said — a blanket "failed" hides
         // whether this is an expired session, a missing Blob token, etc.
@@ -538,6 +545,16 @@ export default function AdminPage() {
             </button>
           </div>
         </div>
+
+        {configSource === 'seed' && !importInfo && (
+          <div style={styles.importBox}>
+            <b>저장된 영상 목록을 찾지 못했습니다</b>
+            <p style={styles.importText}>
+              연결된 저장소에 설정 파일이 없어서 지금 보이는 건 샘플 데이터입니다. 저장소를 바꾼 직후라면 연결이
+              잘못됐을 수 있으니 저장하지 말고 확인해주세요.
+            </p>
+          </div>
+        )}
 
         {importInfo && (
           <div style={styles.importBox}>

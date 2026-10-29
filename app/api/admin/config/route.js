@@ -12,8 +12,11 @@ export async function GET(request) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
   try {
-    const { config } = await loadConfig();
-    return NextResponse.json(config);
+    const { config, source } = await loadConfig();
+    // 'seed' means the store has no saved config yet (e.g. right after the
+    // token is pointed at a new store); the admin refuses to save over it
+    // without an explicit confirmation.
+    return NextResponse.json(config, { headers: { 'X-Config-Source': source } });
   } catch (err) {
     // Deliberately not falling back to the bundled sample config: the admin
     // saves whatever it loaded, so serving sample data here would let a
