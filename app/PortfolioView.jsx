@@ -14,8 +14,8 @@ const BRAND_WORDMARK_GREY = '/media/brand/logo-wordmark-grey.png';
 const BLANK_POSTER =
   'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
-function Clip({ src, landscape, badge }) {
-  const cls = 'clip' + (landscape ? ' landscape' : '') + (src ? '' : ' empty');
+function Clip({ src, badge, style }) {
+  const cls = 'clip' + (src ? '' : ' empty');
   const ref = useRef(null);
   const videoRef = useRef(null);
   const [visible, setVisible] = useState(false);
@@ -44,7 +44,7 @@ function Clip({ src, landscape, badge }) {
   }, [visible]);
 
   return (
-    <div className={cls} ref={ref}>
+    <div className={cls} ref={ref} style={style}>
       {badge && <span className="clip-badge">{badge}</span>}
       {src ? (
         visible && (
@@ -69,6 +69,116 @@ function Clip({ src, landscape, badge }) {
   );
 }
 
+const LANDSCAPE = 16 / 9;
+
+/* Width/height of each travel clip, read from the file itself so footage can
+   be uploaded in either orientation without tagging it in the admin. Only
+   the metadata is fetched; the card's own <video> still loads lazily. Kept
+   across renders so switching region tabs doesn't probe the same file again. */
+const ratioCache = new Map();
+
+function useVideoRatios(srcs) {
+  const [, setProbed] = useState(0);
+  const key = srcs.join('\n');
+
+  useEffect(() => {
+    let alive = true;
+    const probes = srcs.filter((src) => src && !ratioCache.has(src)).map((src) => {
+      const video = document.createElement('video');
+      const done = (ratio) => {
+        ratioCache.set(src, ratio);
+        video.removeAttribute('src');
+        video.load();
+        if (alive) setProbed((n) => n + 1);
+      };
+      video.preload = 'metadata';
+      video.muted = true;
+      video.onloadedmetadata = () =>
+        done(video.videoWidth && video.videoHeight ? video.videoWidth / video.videoHeight : LANDSCAPE);
+      video.onerror = () => done(LANDSCAPE);
+      video.src = src;
+      return video;
+    });
+    return () => {
+      alive = false;
+      probes.forEach((video) => {
+        video.onloadedmetadata = video.onerror = null;
+      });
+    };
+  }, [key]);
+
+  // Until a file's metadata arrives it is laid out as landscape, which is
+  // what travel footage almost always is, so most cards never move.
+  return srcs.map((src) => ratioCache.get(src) ?? LANDSCAPE);
+}
+
+/* Rows of equal height, filled left to right in admin order. Each card's
+   flex-grow is its aspect ratio, so widths come out proportional and every
+   card in a row lands on the same height whatever its orientation. A row
+   closes once it holds about `target` worth of width — two landscape clips
+   on desktop, one on phones — so a row of portrait clips is as tall as a
+   row of landscape ones. */
+function packRows(ratios, target) {
+  const rows = [];
+  let row = [];
+  let sum = 0;
+  ratios.forEach((ratio, i) => {
+    if (row.length && sum + ratio > target * 1.15) {
+      rows.push({ items: row, sum });
+      row = [];
+      sum = 0;
+    }
+    row.push(i);
+    sum += ratio;
+  });
+  if (row.length) rows.push({ items: row, sum });
+  return rows;
+}
+
+function useNarrow(query) {
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const update = () => setNarrow(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, [query]);
+  return narrow;
+}
+
+function TravelRows({ items }) {
+  const ratios = useVideoRatios(items.map((item) => item.src));
+  const narrow = useNarrow('(max-width:720px)');
+  const target = (narrow ? 1 : 2) * LANDSCAPE;
+
+  if (!items.length) {
+    return (
+      <div className="travel-rows">
+        <div className="travel-row"><Clip style={{ '--r': LANDSCAPE }} /></div>
+      </div>
+    );
+  }
+
+  const rows = packRows(ratios, target);
+  return (
+    <div className="travel-rows">
+      {rows.map((row, r) => (
+        <div className="travel-row" key={r}>
+          {row.items.map((i) => (
+            <Clip key={items[i].src + i} src={items[i].src} badge={items[i].badge} style={{ '--r': ratios[i] }} />
+          ))}
+          {/* A short last row keeps the full-row height instead of
+              stretching one portrait clip across the whole feed. */}
+          {r === rows.length - 1 && row.sum < target && (
+            <div className="travel-row-filler" style={{ '--r': target - row.sum }} />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /* clips may be plain src strings or { src, badge } when a region label
    needs to ride along (e.g. combined 국내/해외 feeds). */
 function ClipGrid({ layout, clips }) {
@@ -77,19 +187,7 @@ function ClipGrid({ layout, clips }) {
   return (
     <div className="clip-grid">
       {layout === 'travel' ? (
-        <div className="travel-grid">
-          {[0, 1].map((colIndex) => {
-            const half = Math.ceil(items.length / 2);
-            const colItems = colIndex === 0 ? items.slice(0, half) : items.slice(half);
-            return (
-              <div className="travel-col" key={colIndex}>
-                {(colItems.length ? colItems : [{}]).map((item, i) => (
-                  <Clip key={i} src={item.src} badge={item.badge} landscape />
-                ))}
-              </div>
-            );
-          })}
-        </div>
+        <TravelRows items={items} />
       ) : (
         <div className="reel-strip">
           {(items.length ? items : [{}]).map((item, i) => (
