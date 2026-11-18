@@ -3,65 +3,99 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { pathForView, viewForSlug } from '@/lib/slugs';
+import mediaPosters from '@/lib/media-posters.json';
 
 const BRAND_SYMBOL = '/media/brand/symbol-black.png';
 const BRAND_WORDMARK = '/media/brand/logo-wordmark.png';
 const BRAND_WORDMARK_GREY = '/media/brand/logo-wordmark-grey.png';
 
-/* 1x1 transparent GIF. Without a poster, mobile browsers paint their own grey
-   play-button placeholder until the first frame decodes; this hands them an
-   invisible one so the card background shows through instead. */
-const BLANK_POSTER =
-  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+/* Card thumbnails, keyed by the clip's path so a clip finds its poster
+   whichever Blob store host currently serves it. Posters are small static
+   JPEGs on the site itself; clips without one show the card background. */
+function posterFor(src) {
+  if (!src) return null;
+  let path = src;
+  try {
+    path = decodeURIComponent(new URL(src, 'https://x.invalid').pathname);
+  } catch {}
+  return mediaPosters[path] || null;
+}
 
+// The one card playing right now, so starting another pauses it.
+let playingVideo = null;
+
+/* Lists show the poster and a play button only: nothing touches the MP4
+   until the visitor presses play, which is what keeps Blob transfer down.
+   The src is attached on that click and dropped again when the card leaves
+   the screen, so a clip someone scrolled past stops downloading too. */
 function Clip({ src, badge, style }) {
   const cls = 'clip' + (src ? '' : ' empty');
   const ref = useRef(null);
   const videoRef = useRef(null);
-  const [visible, setVisible] = useState(false);
-  const [ready, setReady] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const poster = posterFor(src);
 
   useEffect(() => {
-    if (!src || !ref.current) return;
-    const el = ref.current;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: '400px' }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
+    setPlaying(false);
   }, [src]);
 
-  // A cached video can reach HAVE_CURRENT_DATA before React attaches the
-  // handlers below, which would leave it faded out for good.
   useEffect(() => {
-    if (visible && videoRef.current && videoRef.current.readyState >= 2) setReady(true);
-  }, [visible]);
+    if (!playing || !ref.current) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) setPlaying(false);
+    });
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [playing]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!playing || !video) return;
+    if (playingVideo && playingVideo !== video) playingVideo.pause();
+    playingVideo = video;
+    // A press on play usually allows sound, but some mobile browsers only
+    // let a video start muted once React has rendered it; the controls can
+    // unmute it from there.
+    video.play().catch(() => {
+      video.muted = true;
+      return video.play();
+    }).catch(() => setPlaying(false));
+    return () => {
+      if (playingVideo === video) playingVideo = null;
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    };
+  }, [playing]);
 
   return (
-    <div className={cls} ref={ref} style={style}>
+    <div className={cls + (playing ? ' playing' : '')} ref={ref} style={style}>
       {badge && <span className="clip-badge">{badge}</span>}
       {src ? (
-        visible && (
-          <video
-            ref={videoRef}
-            className={'fill' + (ready ? ' ready' : '')}
-            src={src}
-            poster={BLANK_POSTER}
-            preload="auto"
-            autoPlay
-            muted
-            loop
-            playsInline
-            onLoadedData={() => setReady(true)}
-            onCanPlay={() => setReady(true)}
-          />
-        )
+        <>
+          {poster && <img className="fill clip-poster" src={poster} alt="" loading="lazy" decoding="async" />}
+          {playing ? (
+            <video
+              ref={videoRef}
+              className="fill"
+              src={src}
+              poster={poster || undefined}
+              preload="auto"
+              controls
+              loop
+              playsInline
+              onPause={(e) => { if (e.currentTarget === playingVideo) playingVideo = null; }}
+              onPlay={(e) => {
+                if (playingVideo && playingVideo !== e.currentTarget) playingVideo.pause();
+                playingVideo = e.currentTarget;
+              }}
+            />
+          ) : (
+            <button type="button" className="clip-play" aria-label="영상 재생" onClick={() => setPlaying(true)}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" /></svg>
+            </button>
+          )}
+        </>
       ) : (
         <span className="slot-msg"><span className="plus">+</span><span className="label">준비중</span></span>
       )}
@@ -71,45 +105,36 @@ function Clip({ src, badge, style }) {
 
 const LANDSCAPE = 16 / 9;
 
-/* Width/height of each travel clip, read from the file itself so footage can
-   be uploaded in either orientation without tagging it in the admin. Only
-   the metadata is fetched; the card's own <video> still loads lazily. Kept
-   across renders so switching region tabs doesn't probe the same file again. */
+/* Width/height of each travel clip, read from its poster: the posters keep
+   the footage's proportions, so the layout knows each orientation without
+   fetching any video. Clips without a poster are laid out as landscape,
+   which is what travel footage almost always is. Kept across renders so
+   switching region tabs doesn't measure the same image again. */
 const ratioCache = new Map();
 
 function useVideoRatios(srcs) {
-  const [, setProbed] = useState(0);
+  const [, setMeasured] = useState(0);
   const key = srcs.join('\n');
 
   useEffect(() => {
     let alive = true;
-    const probes = srcs.filter((src) => src && !ratioCache.has(src)).map((src) => {
-      const video = document.createElement('video');
-      const done = (ratio) => {
-        ratioCache.set(src, ratio);
-        video.removeAttribute('src');
-        video.load();
-        if (alive) setProbed((n) => n + 1);
+    const images = srcs.map(posterFor).filter((poster) => poster && !ratioCache.has(poster)).map((poster) => {
+      const img = new Image();
+      img.onload = () => {
+        ratioCache.set(poster, img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : LANDSCAPE);
+        if (alive) setMeasured((n) => n + 1);
       };
-      video.preload = 'metadata';
-      video.muted = true;
-      video.onloadedmetadata = () =>
-        done(video.videoWidth && video.videoHeight ? video.videoWidth / video.videoHeight : LANDSCAPE);
-      video.onerror = () => done(LANDSCAPE);
-      video.src = src;
-      return video;
+      img.onerror = () => ratioCache.set(poster, LANDSCAPE);
+      img.src = poster;
+      return img;
     });
     return () => {
       alive = false;
-      probes.forEach((video) => {
-        video.onloadedmetadata = video.onerror = null;
-      });
+      images.forEach((img) => { img.onload = img.onerror = null; });
     };
   }, [key]);
 
-  // Until a file's metadata arrives it is laid out as landscape, which is
-  // what travel footage almost always is, so most cards never move.
-  return srcs.map((src) => ratioCache.get(src) ?? LANDSCAPE);
+  return srcs.map((src) => ratioCache.get(posterFor(src)) ?? LANDSCAPE);
 }
 
 /* Rows of equal height, filled left to right in admin order. Each card's
