@@ -3,27 +3,86 @@
 import { useEffect, useRef, useState } from 'react';
 import { upload } from '@vercel/blob/client';
 
+/* Storage paths stay ASCII: the original name (often Korean) is not needed
+   once uploaded, and a plain path keeps it out of URLs and request headers. */
+function storageName(fileName) {
+  const dot = fileName.lastIndexOf('.');
+  const ext = dot > 0 ? fileName.slice(dot).toLowerCase().replace(/[^a-z0-9.]/g, '') : '';
+  const base = (dot > 0 ? fileName.slice(0, dot) : fileName).replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '');
+  return `${base || 'clip'}${ext}`;
+}
+
 export default function AdminPage() {
   const [config, setConfig] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [selectedRegionKey, setSelectedRegionKey] = useState(null);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState(null);
+  const [saveError, setSaveError] = useState(null);
+  const [loadError, setLoadError] = useState(null);
+  const [configSource, setConfigSource] = useState(null);
   const [uploadingCount, setUploadingCount] = useState(0);
+  const [uploadFailures, setUploadFailures] = useState([]);
+  // null until we know; false when this deployment has no old store to
+  // import from (the usual case), otherwise { files } or { error }.
+  const [importInfo, setImportInfo] = useState(null);
+  const [importRun, setImportRun] = useState(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [highlightUploading, setHighlightUploading] = useState(false);
   const [dragOverCatId, setDragOverCatId] = useState(null);
+  const [dragOverRegionKey, setDragOverRegionKey] = useState(null);
+  // Indices into the clips of the tab on screen, so they are dropped
+  // whenever that list is switched or reshuffled.
+  const [selectedClips, setSelectedClips] = useState(() => new Set());
+  const selectAnchor = useRef(null);
   const dragSource = useRef(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
+    fetch('/api/admin/import')
+      .then(async (r) => {
+        if (r.status === 404) return setImportInfo(false);
+        const data = await r.json().catch(() => ({}));
+        setImportInfo(r.ok ? { files: data.files } : { error: data.error || `HTTP ${r.status}` });
+      })
+      .catch(() => setImportInfo(false));
+  }, []);
+
+  useEffect(() => {
+    setSelectedClips(new Set());
+    selectAnchor.current = null;
+  }, [selectedId, selectedRegionKey]);
+
+  useEffect(() => {
     fetch('/api/admin/config')
-      .then((r) => r.json())
+      .then(async (r) => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+        setConfigSource(r.headers.get('X-Config-Source'));
+        return data;
+      })
       .then((data) => {
         setConfig(data);
         setSelectedId(data.categories[0]?.id);
         const first = data.categories[0];
         if (first?.regions) setSelectedRegionKey(first.regions[0].key);
-      });
+      })
+      .catch((err) => setLoadError(err.message));
   }, []);
+
+  if (loadError) {
+    return (
+      <div style={styles.loading}>
+        <div style={{ maxWidth: 420, textAlign: 'center' }}>
+          <p style={{ color: C.accent, fontWeight: 700, marginBottom: 8 }}>설정을 불러오지 못했습니다</p>
+          <p style={{ fontSize: 13, lineHeight: 1.6 }}>{loadError}</p>
+          <p style={{ fontSize: 12, marginTop: 12 }}>
+            데이터가 덮어써지지 않도록 편집을 막았습니다. 새로고침 후에도 같은 메시지가 뜨면 알려주세요.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (!config) {
     return <div style={styles.loading}>불러오는 중...</div>;
@@ -31,9 +90,9 @@ export default function AdminPage() {
 
   const category = config.categories.find((c) => c.id === selectedId);
   const hasRegions = Array.isArray(category?.regions) && category.regions.length > 0;
-  const clips = hasRegions
-    ? category.regions.find((r) => r.key === selectedRegionKey)?.clips || []
-    : category?.clips || [];
+  const region = hasRegions ? category.regions.find((r) => r.key === selectedRegionKey) : null;
+  const clips = hasRegions ? region?.clips || [] : category?.clips || [];
+  const otherRegions = hasRegions ? category.regions.filter((r) => r.key !== selectedRegionKey) : [];
 
   function updateClips(newClips) {
     setConfig((prev) => {
@@ -49,6 +108,92 @@ export default function AdminPage() {
     });
   }
 
+  function addAbroadRegion() {
+    setConfig((prev) => {
+      const next = structuredClone(prev);
+      const cat = next.categories.find((c) => c.id === selectedId);
+      if (Array.isArray(cat.regions) && cat.regions.length > 0) {
+        cat.regions.push({ key: 'abroad', label: '해외', clips: [] });
+      } else {
+        cat.regions = [
+          { key: 'domestic', label: '국내', clips: cat.clips || [] },
+          { key: 'abroad', label: '해외', clips: [] },
+        ];
+        delete cat.clips;
+      }
+      return next;
+    });
+    setSelectedRegionKey('abroad');
+  }
+
+  function addRegion() {
+    const label = window.prompt('새 탭 이름')?.trim();
+    if (!label) return;
+    const key = `tab-${Date.now().toString(36)}`;
+    setConfig((prev) => {
+      const next = structuredClone(prev);
+      next.categories.find((c) => c.id === selectedId).regions.push({ key, label, clips: [] });
+      return next;
+    });
+    setSelectedRegionKey(key);
+  }
+
+  function updateRegionLabel(label) {
+    setConfig((prev) => {
+      const next = structuredClone(prev);
+      const cat = next.categories.find((c) => c.id === selectedId);
+      cat.regions.find((r) => r.key === selectedRegionKey).label = label;
+      return next;
+    });
+  }
+
+  // Only offered for an empty tab, so nothing can be lost with it.
+  function removeRegion() {
+    setConfig((prev) => {
+      const next = structuredClone(prev);
+      const cat = next.categories.find((c) => c.id === selectedId);
+      cat.regions = cat.regions.filter((r) => r.key !== selectedRegionKey);
+      return next;
+    });
+    setSelectedRegionKey(otherRegions[0].key);
+  }
+
+  function clearSelection() {
+    setSelectedClips(new Set());
+    selectAnchor.current = null;
+  }
+
+  function onClipClick(index, shiftKey) {
+    if (otherRegions.length === 0) return;
+    const next = new Set(selectedClips);
+    if (shiftKey && selectAnchor.current != null) {
+      const from = Math.min(selectAnchor.current, index);
+      const to = Math.max(selectAnchor.current, index);
+      for (let i = from; i <= to; i++) next.add(i);
+    } else if (next.has(index)) {
+      next.delete(index);
+    } else {
+      next.add(index);
+    }
+    selectAnchor.current = index;
+    setSelectedClips(next);
+  }
+
+  // Moves keep their on-screen order and land at the end of the target tab.
+  function moveSelectedTo(regionKey) {
+    const picked = selectedClips;
+    setConfig((prev) => {
+      const next = structuredClone(prev);
+      const cat = next.categories.find((c) => c.id === selectedId);
+      const from = cat.regions.find((r) => r.key === selectedRegionKey);
+      const to = cat.regions.find((r) => r.key === regionKey);
+      to.clips = [...(to.clips || []), ...from.clips.filter((_, i) => picked.has(i))];
+      from.clips = from.clips.filter((_, i) => !picked.has(i));
+      return next;
+    });
+    clearSelection();
+  }
+
   function updateCategoryTitle(title) {
     setConfig((prev) => {
       const next = structuredClone(prev);
@@ -58,10 +203,64 @@ export default function AdminPage() {
     });
   }
 
+  function updateCategoryHighlight(url) {
+    setConfig((prev) => {
+      const next = structuredClone(prev);
+      const cat = next.categories.find((c) => c.id === selectedId);
+      cat.highlightImage = url;
+      return next;
+    });
+  }
+
+  function updateAvatar(url) {
+    setConfig((prev) => {
+      const next = structuredClone(prev);
+      next.profile = { ...(next.profile || {}), avatarUrl: url };
+      return next;
+    });
+  }
+
+  async function onAvatarSelected(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      const blob = await upload(`profile/${Date.now()}-${file.name}`, file, {
+        access: 'public',
+        handleUploadUrl: '/api/admin/upload',
+      });
+      updateAvatar(blob.url);
+    } catch (err) {
+      console.error('avatar upload failed', err);
+      alert('프로필 사진 업로드에 실패했습니다');
+    }
+    setAvatarUploading(false);
+  }
+
+  async function onHighlightSelected(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setHighlightUploading(true);
+    try {
+      const blob = await upload(`media/${selectedId}/highlight-${Date.now()}-${file.name}`, file, {
+        access: 'public',
+        handleUploadUrl: '/api/admin/upload',
+      });
+      updateCategoryHighlight(blob.url);
+    } catch (err) {
+      console.error('highlight upload failed', err);
+      alert('하이라이트 사진 업로드에 실패했습니다');
+    }
+    setHighlightUploading(false);
+  }
+
   function removeClip(index) {
     const next = clips.slice();
     next.splice(index, 1);
     updateClips(next);
+    clearSelection();
   }
 
   function onDragStart(index) {
@@ -82,8 +281,28 @@ export default function AdminPage() {
       const [moved] = next.splice(src.index, 1);
       next.splice(index, 0, moved);
       updateClips(next);
+      clearSelection();
     } else {
       moveClipAcrossPages(src, { catId: selectedId, regionKey: selectedRegionKey, index });
+    }
+  }
+
+  function onRegionDragOver(e, regionKey) {
+    if (!dragSource.current || regionKey === selectedRegionKey) return;
+    e.preventDefault();
+    setDragOverRegionKey(regionKey);
+  }
+
+  // Dropping a selected card on a tab carries the whole selection with it.
+  function onRegionDrop(regionKey) {
+    const src = dragSource.current;
+    dragSource.current = null;
+    setDragOverRegionKey(null);
+    if (!src || regionKey === selectedRegionKey) return;
+    if (src.catId === selectedId && src.regionKey === selectedRegionKey && selectedClips.has(src.index)) {
+      moveSelectedTo(regionKey);
+    } else {
+      moveClipAcrossPages(src, { catId: selectedId, regionKey, index: null });
     }
   }
 
@@ -115,6 +334,7 @@ export default function AdminPage() {
       }
       return next;
     });
+    clearSelection();
   }
 
   function onSidebarDragOver(e, catId) {
@@ -138,37 +358,125 @@ export default function AdminPage() {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
     setUploadingCount(files.length);
+    setUploadFailures([]);
     const uploaded = [];
+    const failures = [];
     for (const file of files) {
       try {
-        const blob = await upload(`media/${selectedId}/${Date.now()}-${file.name}`, file, {
+        const blob = await upload(`media/${selectedId}/${Date.now()}-${storageName(file.name)}`, file, {
           access: 'public',
           handleUploadUrl: '/api/admin/upload',
+          // Sent in parts, each retried on its own, so a long video doesn't
+          // fail outright on one dropped request.
+          multipart: true,
         });
         uploaded.push(blob.url);
       } catch (err) {
         console.error('upload failed', file.name, err);
-        alert(`업로드 실패: ${file.name}`);
+        const message = err?.message || String(err);
+        failures.push({
+          name: file.name,
+          message: /client token/i.test(message)
+            ? `${message} (로그인이 만료됐을 수 있어요. 다시 로그인한 뒤 올려주세요)`
+            : message,
+        });
       }
       setUploadingCount((c) => c - 1);
     }
+    // One summary on the page instead of a blocking alert per file — a bulk
+    // upload with a recurring failure otherwise means clicking through dozens.
+    setUploadFailures(failures);
     updateClips([...clips, ...uploaded]);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
-  async function onSave() {
-    setSaving(true);
-    const res = await fetch('/api/admin/config', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(config),
-    });
-    setSaving(false);
-    if (res.ok) {
-      setSavedAt(new Date().toLocaleTimeString('ko-KR'));
-    } else {
-      alert('저장에 실패했습니다');
+  async function runImport() {
+    const files = importInfo.files;
+    if (!window.confirm(
+      `기존 저장소의 영상·사진 ${files.length}개와 설정을 이 저장소로 복사합니다.\n` +
+      '이 사이트에 지금 있는 설정은 기존 설정으로 덮어써집니다. 진행할까요?'
+    )) return;
+
+    const map = {};
+    const failures = [];
+    let done = 0;
+    setImportRun({ phase: 'copy', done, total: files.length, failures });
+    const queue = files.slice();
+    // A few at a time: fast enough for hundreds of clips without piling
+    // long video copies onto the server at once.
+    await Promise.all(Array.from({ length: 3 }, async () => {
+      while (queue.length) {
+        const url = queue.shift();
+        try {
+          const res = await fetch('/api/admin/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'copy', url }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+          map[url] = data.url;
+        } catch (err) {
+          failures.push({ name: decodeURIComponent(new URL(url).pathname.split('/').pop()), message: err.message });
+        }
+        done += 1;
+        setImportRun({ phase: 'copy', done, total: files.length, failures: failures.slice() });
+      }
+    }));
+
+    setImportRun({ phase: 'finish', done, total: files.length, failures: failures.slice() });
+    try {
+      const res = await fetch('/api/admin/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'finish', map }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      const fresh = await fetch('/api/admin/config').then((r) => r.json());
+      setConfig(fresh);
+      setSelectedId(fresh.categories[0]?.id);
+      setSelectedRegionKey(fresh.categories[0]?.regions ? fresh.categories[0].regions[0].key : null);
+      setImportRun({ phase: 'done', done, total: files.length, failures: failures.slice() });
+    } catch (err) {
+      setImportRun({ phase: 'error', done, total: files.length, failures: failures.slice(), error: err.message });
     }
+  }
+
+  async function onSave() {
+    if (configSource === 'seed' && !window.confirm(
+      '이 저장소에는 저장된 영상 목록이 없어서 지금 화면은 샘플 데이터입니다.\n' +
+      '저장하면 이 샘플이 실제 사이트 목록이 됩니다. 정말 저장할까요?'
+    )) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const res = await fetch('/api/admin/config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config),
+      });
+      if (res.ok) {
+        setSavedAt(new Date().toLocaleTimeString('ko-KR'));
+        setConfigSource('blob');
+      } else {
+        // Surface what the server actually said — a blanket "failed" hides
+        // whether this is an expired session, a missing Blob token, etc.
+        const detail = await res.text().catch(() => '');
+        let message = detail;
+        try {
+          message = JSON.parse(detail).error || detail;
+        } catch {}
+        setSaveError(
+          res.status === 401
+            ? '세션이 만료되었습니다. 다시 로그인해주세요.'
+            : `저장 실패 (${res.status}) ${message}`.trim()
+        );
+      }
+    } catch (err) {
+      setSaveError(`저장 실패: ${err.message}`);
+    }
+    setSaving(false);
   }
 
   async function onLogout() {
@@ -180,6 +488,23 @@ export default function AdminPage() {
     <div style={styles.wrap}>
       <aside style={styles.sidebar}>
         <div style={styles.sidebarHeader}>SIRIAI Admin</div>
+
+        <div style={styles.profileBox}>
+          <div style={styles.profileAvatar}>
+            {config.profile?.avatarUrl && <img src={config.profile.avatarUrl} alt="" style={styles.profileAvatarImg} />}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={styles.profileLabel}>프로필 사진</div>
+            <label style={styles.smallBtn}>
+              {avatarUploading ? '업로드 중...' : '사진 변경'}
+              <input type="file" accept="image/png,image/jpeg" onChange={onAvatarSelected} style={{ display: 'none' }} />
+            </label>
+            {config.profile?.avatarUrl && (
+              <button onClick={() => updateAvatar(null)} style={styles.smallRemoveBtn}>기본으로</button>
+            )}
+          </div>
+        </div>
+
         {config.categories.map((cat, i) => (
           <button
             key={cat.id}
@@ -212,31 +537,158 @@ export default function AdminPage() {
             style={styles.titleInput}
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {savedAt && <span style={styles.savedNote}>저장됨 {savedAt}</span>}
+            {saveError
+              ? <span style={styles.saveErrorNote}>{saveError}</span>
+              : savedAt && <span style={styles.savedNote}>저장됨 {savedAt}</span>}
             <button onClick={onSave} disabled={saving} style={styles.saveBtn}>
               {saving ? '저장 중...' : '저장'}
             </button>
           </div>
         </div>
 
-        {hasRegions && (
-          <div style={styles.regionTabs}>
-            {category.regions.map((r) => (
-              <button
-                key={r.key}
-                onClick={() => setSelectedRegionKey(r.key)}
-                style={{
-                  ...styles.regionTab,
-                  ...(r.key === selectedRegionKey ? styles.regionTabActive : {}),
-                }}
-              >
-                {r.label}
-              </button>
-            ))}
+        {configSource === 'seed' && !importInfo && (
+          <div style={styles.importBox}>
+            <b>저장된 영상 목록을 찾지 못했습니다</b>
+            <p style={styles.importText}>
+              연결된 저장소에 설정 파일이 없어서 지금 보이는 건 샘플 데이터입니다. 저장소를 바꾼 직후라면 연결이
+              잘못됐을 수 있으니 저장하지 말고 확인해주세요.
+            </p>
           </div>
         )}
 
-        <p style={styles.hint}>카드를 드래그해서 순서를 바꾸세요. 왼쪽 페이지 목록으로 드래그하면 해당 페이지로 영상이 이동합니다. 영상을 추가하려면 아래 버튼을 누르세요.</p>
+        {importInfo && (
+          <div style={styles.importBox}>
+            <b>기존 저장소에서 가져오기</b>
+            {importInfo.error ? (
+              <p style={styles.importText}>기존 저장소를 읽지 못했습니다: {importInfo.error}</p>
+            ) : !importRun ? (
+              <>
+                <p style={styles.importText}>
+                  예전 프로젝트의 영상·사진 {importInfo.files.length}개와 설정을 이 프로젝트 저장소로 복사합니다.
+                  가져오기 전에는 이 화면에서 저장을 누르지 마세요 — 지금 보이는 건 샘플일 수 있습니다.
+                </p>
+                <button onClick={runImport} style={styles.moveBtn}>가져오기 시작</button>
+              </>
+            ) : (
+              <>
+                <p style={styles.importText}>
+                  {importRun.phase === 'copy' && `복사 중 ${importRun.done} / ${importRun.total} — 끝날 때까지 이 창을 닫지 마세요.`}
+                  {importRun.phase === 'finish' && '설정 저장 중...'}
+                  {importRun.phase === 'done' && (importRun.failures.length
+                    ? `완료. ${importRun.total - importRun.failures.length}개 복사, ${importRun.failures.length}개 실패 — 실패한 것은 아직 예전 주소를 쓰고 있어요. 다시 가져오기를 누르면 재시도합니다.`
+                    : `완료. ${importRun.total}개 모두 복사했고 설정도 저장했습니다. 사이트를 확인한 뒤 Vercel에서 OLD_BLOB_READ_WRITE_TOKEN을 지우세요.`)}
+                  {importRun.phase === 'error' && `설정 저장 실패: ${importRun.error}`}
+                </p>
+                {(importRun.phase === 'done' || importRun.phase === 'error') && (
+                  <button onClick={runImport} style={styles.clearSelectionBtn}>다시 가져오기</button>
+                )}
+                {importRun.failures.length > 0 && (
+                  <ul style={styles.uploadFailList}>
+                    {importRun.failures.map((f, i) => <li key={f.name + i}><b>{f.name}</b> — {f.message}</li>)}
+                  </ul>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        <div style={styles.highlightBox}>
+          <div style={styles.highlightThumb}>
+            {category.highlightImage
+              ? <img src={category.highlightImage} alt="" style={styles.profileAvatarImg} />
+              : <span style={styles.highlightThumbEmpty}>아이콘</span>}
+          </div>
+          <div>
+            <div style={styles.profileLabel}>이 카테고리의 하이라이트 사진</div>
+            <label style={styles.smallBtn}>
+              {highlightUploading ? '업로드 중...' : '사진 변경'}
+              <input type="file" accept="image/png,image/jpeg" onChange={onHighlightSelected} style={{ display: 'none' }} />
+            </label>
+            {category.highlightImage && (
+              <button onClick={() => updateCategoryHighlight(null)} style={styles.smallRemoveBtn}>기본 아이콘으로</button>
+            )}
+          </div>
+        </div>
+
+        {hasRegions && (
+          <>
+            <div style={styles.regionTabs}>
+              {category.regions.map((r) => (
+                <button
+                  key={r.key}
+                  onClick={() => setSelectedRegionKey(r.key)}
+                  onDragOver={(e) => onRegionDragOver(e, r.key)}
+                  onDragLeave={() => setDragOverRegionKey((cur) => (cur === r.key ? null : cur))}
+                  onDrop={() => onRegionDrop(r.key)}
+                  style={{
+                    ...styles.regionTab,
+                    ...(r.key === selectedRegionKey ? styles.regionTabActive : {}),
+                    ...(r.key === dragOverRegionKey ? styles.regionTabDragOver : {}),
+                  }}
+                >
+                  {r.label}
+                  <span style={styles.regionTabCount}>{r.clips?.length || 0}</span>
+                </button>
+              ))}
+              <button onClick={addRegion} style={styles.regionTabAdd}>+ 탭 추가</button>
+            </div>
+            <div style={styles.regionEdit}>
+              <label style={styles.regionEditLabel}>
+                탭 이름
+                <input
+                  value={region?.label || ''}
+                  onChange={(e) => updateRegionLabel(e.target.value)}
+                  style={styles.regionEditInput}
+                />
+              </label>
+              {clips.length === 0 && otherRegions.length > 0 && (
+                <button onClick={removeRegion} style={styles.smallRemoveBtn}>빈 탭 삭제</button>
+              )}
+            </div>
+            <p style={styles.hint}>
+              지금 <b style={{ color: C.accent }}>{region?.label}</b> 탭이 선택되어 있습니다.
+              여기서 영상을 추가하면 이 탭으로 들어가요. 실제 사이트에도 이 탭 이름 그대로 버튼으로 보여지고, 비어 있는 탭은 사이트에 나타나지 않습니다.
+            </p>
+          </>
+        )}
+
+        {!hasRegions && (
+          <div style={{ marginBottom: 16 }}>
+            <button onClick={addAbroadRegion} style={styles.regionTabAdd}>+ 해외 추가 (국내/해외로 나누기)</button>
+          </div>
+        )}
+
+        <p style={styles.hint}>
+          카드를 드래그해서 순서를 바꾸세요. 왼쪽 페이지 목록으로 드래그하면 해당 페이지로 영상이 이동합니다. 영상을 추가하려면 아래 버튼을 누르세요.
+          {otherRegions.length > 0 && ' 다른 탭으로 옮기려면 카드를 클릭해 선택하고(Shift+클릭으로 범위 선택) 위에 뜨는 이동 버튼을 누르거나, 카드를 탭 위로 드래그하세요.'}
+        </p>
+
+        {selectedClips.size > 0 && (
+          <div style={styles.selectionBar}>
+            <b style={styles.selectionCount}>{selectedClips.size}개 선택됨</b>
+            {otherRegions.map((r) => (
+              <button key={r.key} onClick={() => moveSelectedTo(r.key)} style={styles.moveBtn}>
+                {r.label} 탭으로 이동
+              </button>
+            ))}
+            <button onClick={clearSelection} style={styles.clearSelectionBtn}>선택 해제</button>
+          </div>
+        )}
+
+        {uploadFailures.length > 0 && (
+          <div style={styles.uploadFailBox}>
+            <div style={styles.uploadFailHead}>
+              <b>{uploadFailures.length}개 업로드 실패</b>
+              <button onClick={() => setUploadFailures([])} style={styles.clearSelectionBtn}>닫기</button>
+            </div>
+            <p style={styles.uploadFailHint}>나머지는 그대로 추가됐어요. 아래 이유를 확인한 뒤 실패한 파일만 다시 올려주세요.</p>
+            <ul style={styles.uploadFailList}>
+              {uploadFailures.map((f, i) => (
+                <li key={f.name + i}><b>{f.name}</b> — {f.message}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div style={styles.clipGrid}>
           {clips.map((src, i) => (
@@ -246,15 +698,20 @@ export default function AdminPage() {
               onDragStart={() => onDragStart(i)}
               onDragOver={onDragOver}
               onDrop={() => onDrop(i)}
-              style={styles.clipCard}
+              onClick={(e) => onClipClick(i, e.shiftKey)}
+              style={{
+                ...styles.clipCard,
+                ...(selectedClips.has(i) ? styles.clipCardSelected : {}),
+              }}
             >
+              {selectedClips.has(i) && <span style={styles.clipCheck}>✓</span>}
               <video src={src} muted loop playsInline style={styles.clipVideo}
                 onMouseEnter={(e) => e.currentTarget.play()}
                 onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
               />
               <div style={styles.clipFooter}>
                 <span style={styles.clipIndex}>{i + 1}</span>
-                <button onClick={() => removeClip(i)} style={styles.removeBtn}>삭제</button>
+                <button onClick={(e) => { e.stopPropagation(); removeClip(i); }} style={styles.removeBtn}>삭제</button>
               </div>
             </div>
           ))}
@@ -276,30 +733,68 @@ export default function AdminPage() {
   );
 }
 
+/* Palette mirrors the public site's tokens (app/globals.css :root) so the
+   admin doesn't feel like a different, unrelated tool. */
+const C = {
+  bg: '#ffffff', ink: '#171310', muted: '#6f6a5c', accent: '#fa233b',
+  line: '#e4ded2', card: '#f5f2ec', accentSoft: 'rgba(250,35,59,.14)', shellBg: '#ebeae7',
+};
+
 const styles = {
-  loading: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#948e82', background: '#0a0908', fontFamily: 'system-ui, sans-serif' },
-  wrap: { display: 'flex', minHeight: '100vh', background: '#0a0908', color: '#f2ede4', fontFamily: 'system-ui, sans-serif' },
-  sidebar: { width: 220, borderRight: '1px solid #262019', display: 'flex', flexDirection: 'column', padding: 16, gap: 4 },
-  sidebarHeader: { fontWeight: 700, fontSize: 15, marginBottom: 12 },
-  navItem: { display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', background: 'transparent', border: '1px solid transparent', color: '#948e82', padding: '8px 10px', borderRadius: 8, cursor: 'pointer', fontSize: 13 },
-  navItemActive: { background: '#15130f', color: '#f2ede4' },
-  navItemDragOver: { borderColor: '#c98a3f', background: 'rgba(201,138,63,.14)', color: '#f2ede4' },
-  navItemIdx: { fontSize: 11, color: '#c98a3f', fontVariantNumeric: 'tabular-nums' },
-  logoutBtn: { background: 'transparent', border: '1px solid #262019', color: '#948e82', padding: '8px 10px', borderRadius: 8, cursor: 'pointer', fontSize: 12 },
-  main: { flex: 1, padding: 28, overflowY: 'auto' },
+  loading: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.muted, background: C.shellBg, fontFamily: 'system-ui, sans-serif' },
+  wrap: { display: 'flex', minHeight: '100vh', alignItems: 'flex-start', gap: 10, background: C.shellBg, padding: 10, color: C.ink, fontFamily: 'system-ui, sans-serif', boxSizing: 'border-box' },
+  sidebar: { width: 240, flex: '0 0 auto', height: 'calc(100vh - 20px)', position: 'sticky', top: 10, display: 'flex', flexDirection: 'column', overflowY: 'auto', padding: 16, gap: 4, background: C.bg, borderRadius: 16 },
+  sidebarHeader: { fontWeight: 700, fontSize: 16, marginBottom: 12, padding: '0 4px' },
+  profileBox: { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 8px', marginBottom: 12, border: `1px solid ${C.line}`, borderRadius: 10, background: C.card },
+  profileAvatar: { width: 44, height: 44, borderRadius: '50%', overflow: 'hidden', background: C.line, flex: '0 0 auto' },
+  profileAvatarImg: { width: '100%', height: '100%', objectFit: 'cover' },
+  profileLabel: { fontSize: 11, color: C.muted, marginBottom: 4 },
+  smallBtn: { display: 'inline-block', fontSize: 11, color: C.ink, background: C.bg, border: `1px solid ${C.line}`, borderRadius: 6, padding: '4px 8px', cursor: 'pointer' },
+  smallRemoveBtn: { display: 'inline-block', fontSize: 11, color: C.accent, background: 'transparent', border: 'none', cursor: 'pointer', marginLeft: 8, padding: 0 },
+  highlightBox: { display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', marginBottom: 16, border: `1px solid ${C.line}`, borderRadius: 10, background: C.card },
+  highlightThumb: { width: 56, height: 56, borderRadius: '50%', overflow: 'hidden', background: C.line, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' },
+  highlightThumbEmpty: { fontSize: 10, color: C.muted },
+  // Borders below are spelled out as longhands: the active/selected/drag-over
+  // variants override borderColor, and React clearing that override on a
+  // `border` shorthand leaves the border in the text color instead.
+  navItem: { display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', background: 'transparent', borderWidth: 1, borderStyle: 'solid', borderColor: 'transparent', color: C.ink, padding: '9px 10px', borderRadius: 10, cursor: 'pointer', fontSize: 13.5, fontWeight: 500 },
+  navItemActive: { background: C.accentSoft, color: C.accent, fontWeight: 700 },
+  navItemDragOver: { borderColor: C.accent, background: C.accentSoft, color: C.accent },
+  navItemIdx: { fontSize: 11, color: C.accent, fontVariantNumeric: 'tabular-nums' },
+  logoutBtn: { background: 'transparent', border: `1px solid ${C.line}`, color: C.muted, padding: '9px 10px', borderRadius: 10, cursor: 'pointer', fontSize: 12.5 },
+  main: { flex: 1, minWidth: 0, height: 'calc(100vh - 20px)', overflowY: 'auto', background: C.bg, borderRadius: 16, padding: 28, boxSizing: 'border-box' },
   topBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 16 },
-  titleInput: { fontSize: 22, fontWeight: 700, background: 'transparent', border: 'none', color: '#f2ede4', borderBottom: '1px solid #262019', padding: '4px 0', flex: 1 },
-  savedNote: { fontSize: 12, color: '#948e82' },
-  saveBtn: { background: '#c98a3f', border: 'none', color: '#0a0908', fontWeight: 600, padding: '8px 18px', borderRadius: 8, cursor: 'pointer', fontSize: 13 },
-  regionTabs: { display: 'flex', gap: 8, marginBottom: 16 },
-  regionTab: { background: 'transparent', border: '1px solid #262019', color: '#948e82', padding: '6px 14px', borderRadius: 999, cursor: 'pointer', fontSize: 12 },
-  regionTabActive: { color: '#f2ede4', borderColor: '#c98a3f', background: 'rgba(201,138,63,.14)' },
-  hint: { fontSize: 12, color: '#948e82', marginBottom: 16 },
+  titleInput: { fontSize: 22, fontWeight: 700, background: 'transparent', border: 'none', color: C.ink, borderBottom: `1px solid ${C.line}`, padding: '4px 0', flex: 1 },
+  savedNote: { fontSize: 12, color: C.muted },
+  saveErrorNote: { fontSize: 12, color: C.accent, fontWeight: 600, maxWidth: 420, textAlign: 'right' },
+  saveBtn: { background: C.accent, border: 'none', color: '#fff', fontWeight: 700, padding: '9px 20px', borderRadius: 999, cursor: 'pointer', fontSize: 13.5 },
+  regionTabs: { display: 'flex', gap: 8, marginBottom: 12 },
+  regionTab: { display: 'flex', alignItems: 'center', gap: 6, background: C.card, borderWidth: 1, borderStyle: 'solid', borderColor: C.line, color: C.muted, padding: '9px 16px', borderRadius: 999, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
+  regionTabActive: { color: '#fff', borderColor: C.accent, background: C.accent },
+  regionTabCount: { fontSize: 11, opacity: .75, fontVariantNumeric: 'tabular-nums' },
+  regionTabDragOver: { borderColor: C.accent, borderStyle: 'dashed', color: C.accent, background: C.accentSoft },
+  regionTabAdd: { background: 'transparent', border: `1px dashed ${C.line}`, color: C.muted, padding: '9px 16px', borderRadius: 999, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
+  regionEdit: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 },
+  regionEditLabel: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: C.muted },
+  regionEditInput: { fontSize: 13, color: C.ink, background: C.bg, border: `1px solid ${C.line}`, borderRadius: 8, padding: '6px 10px', width: 140 },
+  selectionBar: { position: 'sticky', top: -28, zIndex: 2, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, margin: '0 -28px 16px', padding: '12px 28px', background: C.bg, borderBottom: `1px solid ${C.line}` },
+  selectionCount: { fontSize: 13, marginRight: 4 },
+  moveBtn: { background: C.accent, border: 'none', color: '#fff', fontWeight: 700, padding: '8px 16px', borderRadius: 999, cursor: 'pointer', fontSize: 13 },
+  clearSelectionBtn: { background: 'transparent', border: `1px solid ${C.line}`, color: C.muted, padding: '8px 14px', borderRadius: 999, cursor: 'pointer', fontSize: 12.5 },
+  importBox: { border: `1px solid ${C.accent}`, background: C.accentSoft, borderRadius: 10, padding: '14px 16px', marginBottom: 16, fontSize: 13 },
+  importText: { color: C.ink, margin: '6px 0 10px', lineHeight: 1.6 },
+  uploadFailBox: { border: `1px solid ${C.accent}`, background: C.accentSoft, borderRadius: 10, padding: '12px 16px', marginBottom: 16, fontSize: 12.5 },
+  uploadFailHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, color: C.accent },
+  uploadFailHint: { color: C.muted, margin: '6px 0 8px' },
+  uploadFailList: { margin: 0, paddingLeft: 18, lineHeight: 1.7, maxHeight: 160, overflowY: 'auto', wordBreak: 'break-all' },
+  hint: { fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 },
   clipGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 14 },
-  clipCard: { background: '#15130f', border: '1px solid #262019', borderRadius: 10, overflow: 'hidden', cursor: 'grab' },
+  clipCard: { position: 'relative', background: C.card, borderWidth: 1, borderStyle: 'solid', borderColor: C.line, borderRadius: 10, overflow: 'hidden', cursor: 'grab', userSelect: 'none' },
+  clipCardSelected: { borderColor: C.accent, boxShadow: `0 0 0 2px ${C.accent}` },
+  clipCheck: { position: 'absolute', top: 8, left: 8, zIndex: 1, width: 22, height: 22, borderRadius: '50%', background: C.accent, color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' },
   clipVideo: { width: '100%', aspectRatio: '9/16', objectFit: 'cover', background: '#000' },
   clipFooter: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px' },
-  clipIndex: { fontSize: 11, color: '#948e82' },
-  removeBtn: { background: 'transparent', border: 'none', color: '#e08a6b', cursor: 'pointer', fontSize: 11 },
-  addCard: { aspectRatio: '9/16', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dashed #262019', borderRadius: 10, color: '#948e82', fontSize: 12, cursor: 'pointer', textAlign: 'center', padding: 8 },
+  clipIndex: { fontSize: 11, color: C.muted },
+  removeBtn: { background: 'transparent', border: 'none', color: C.accent, cursor: 'pointer', fontSize: 11 },
+  addCard: { aspectRatio: '9/16', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px dashed ${C.line}`, borderRadius: 10, color: C.muted, fontSize: 12, cursor: 'pointer', textAlign: 'center', padding: 8 },
 };
