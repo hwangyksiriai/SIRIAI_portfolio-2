@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react';
 
 import { pathForView, viewForSlug } from '@/lib/slugs';
 import mediaDerived from '@/lib/media-derived.json';
+import softPreviews from '@/lib/soft-previews.json';
 
 const BRAND_SYMBOL = '/media/brand/symbol-black.png';
 const BRAND_WORDMARK = '/media/brand/logo-wordmark.png';
@@ -46,6 +47,13 @@ function derivedFor(src, posters) {
   return { ...derived, poster: derived.poster || posters?.[src] || null };
 }
 
+/* v1 previews (270-480px, 15fps) look soft on phone screens. Their files
+   are listed here so they are skipped; v2 files are not in this list. */
+const SOFT_PREVIEWS = new Set(softPreviews);
+function isSharpPreview(preview) {
+  return Boolean(preview) && !SOFT_PREVIEWS.has(preview);
+}
+
 // The one card playing its original right now, so starting another stops it.
 let playingVideo = null;
 
@@ -71,7 +79,10 @@ function Clip({ src, badge, style }) {
   // viewer's choice.
   const selfPause = useRef(false);
   const { poster, preview } = derivedFor(src, useContext(PostersContext));
-  const videoSrc = full ? src : preview || src;
+  // Previews are only used once they are the sharp v2 encodes (540px short
+  // side, 30fps); the first batch was 270px/15fps and looked soft, so until
+  // a clip has a v2 preview it autoplays its original.
+  const videoSrc = full || !isSharpPreview(preview) ? src : preview;
 
   useEffect(() => {
     setFull(false);
