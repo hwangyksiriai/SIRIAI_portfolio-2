@@ -3,97 +3,117 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { pathForView, viewForSlug } from '@/lib/slugs';
-import mediaPosters from '@/lib/media-posters.json';
+import mediaDerived from '@/lib/media-derived.json';
 
 const BRAND_SYMBOL = '/media/brand/symbol-black.png';
 const BRAND_WORDMARK = '/media/brand/logo-wordmark.png';
 const BRAND_WORDMARK_GREY = '/media/brand/logo-wordmark-grey.png';
 
-/* Card thumbnails, keyed by the clip's path so a clip finds its poster
-   whichever Blob store host currently serves it. Posters are small static
-   JPEGs on the site itself; clips without one show the card background. */
-function posterFor(src) {
-  if (!src) return null;
+/* 1x1 transparent GIF. Without a poster, mobile browsers paint their own grey
+   play-button placeholder until the first frame decodes; this hands them an
+   invisible one so the card background shows through instead. */
+const BLANK_POSTER =
+  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
+/* Small derived copies of each clip (a JPEG poster and a six-second,
+   480px, 15fps preview MP4) served from the site itself, so the feed's
+   autoplay costs almost nothing in Blob transfer. Looked up by the clip's
+   path rather than its full URL so the match survives a change of Blob
+   store host, and also with Blob's random "-xxxxxxxxxx" name suffixes
+   stripped, so a clip copied to a new store under a re-suffixed name
+   still finds its derivatives. */
+const SUFFIX = /-[A-Za-z0-9]{30}(?=\.[A-Za-z0-9]+$)/;
+function baseName(path) {
+  let out = path;
+  while (SUFFIX.test(out)) out = out.replace(SUFFIX, '');
+  return out;
+}
+const derivedByBase = new Map(Object.entries(mediaDerived).map(([path, media]) => [baseName(path), media]));
+
+function derivedFor(src) {
+  if (!src) return {};
   let path = src;
   try {
     path = decodeURIComponent(new URL(src, 'https://x.invalid').pathname);
   } catch {}
-  return mediaPosters[path] || null;
+  return mediaDerived[path] || derivedByBase.get(baseName(path)) || {};
 }
 
-// The one card playing right now, so starting another pauses it.
+// The one card playing its original right now, so starting another stops it.
 let playingVideo = null;
 
-/* Lists show the poster and a play button only: nothing touches the MP4
-   until the visitor presses play, which is what keeps Blob transfer down.
-   The src is attached on that click and dropped again when the card leaves
-   the screen, so a clip someone scrolled past stops downloading too. */
+/* On screen, a card autoplays muted: its preview when one exists, else the
+   original as before. Off screen the <video> is removed so nothing keeps
+   downloading. Tapping a card swaps in the full original with sound and
+   controls; only one original plays at a time. */
 function Clip({ src, badge, style }) {
   const cls = 'clip' + (src ? '' : ' empty');
   const ref = useRef(null);
   const videoRef = useRef(null);
-  const [playing, setPlaying] = useState(false);
-  const poster = posterFor(src);
+  const [inView, setInView] = useState(false);
+  const [full, setFull] = useState(false);
+  const [ready, setReady] = useState(false);
+  const { poster, preview } = derivedFor(src);
 
   useEffect(() => {
-    setPlaying(false);
+    setFull(false);
+    setInView(false);
+    if (!src || !ref.current) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      setInView(entry.isIntersecting);
+      if (!entry.isIntersecting) setFull(false);
+    }, { rootMargin: '200px' });
+    observer.observe(ref.current);
+    return () => observer.disconnect();
   }, [src]);
 
   useEffect(() => {
-    if (!playing || !ref.current) return;
-    const observer = new IntersectionObserver(([entry]) => {
-      if (!entry.isIntersecting) setPlaying(false);
-    });
-    observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, [playing]);
-
-  useEffect(() => {
+    setReady(false);
     const video = videoRef.current;
-    if (!playing || !video) return;
-    if (playingVideo && playingVideo !== video) playingVideo.pause();
+    if (!video) return;
+    if (video.readyState >= 2) setReady(true);
+    if (!full) return;
+    if (playingVideo && playingVideo !== video) playingVideo.dispatchEvent(new Event('siriai:stop'));
     playingVideo = video;
-    // A press on play usually allows sound, but some mobile browsers only
-    // let a video start muted once React has rendered it; the controls can
-    // unmute it from there.
+    // A tap usually allows sound, but some mobile browsers only start a
+    // freshly rendered video muted; the controls can unmute it.
     video.play().catch(() => {
       video.muted = true;
       return video.play();
-    }).catch(() => setPlaying(false));
+    }).catch(() => {});
+    const stop = () => setFull(false);
+    video.addEventListener('siriai:stop', stop);
     return () => {
+      video.removeEventListener('siriai:stop', stop);
       if (playingVideo === video) playingVideo = null;
-      video.pause();
-      video.removeAttribute('src');
-      video.load();
     };
-  }, [playing]);
+  }, [full, inView]);
+
+  const showVideo = src && (full || inView);
+  const videoSrc = full ? src : preview || src;
 
   return (
-    <div className={cls + (playing ? ' playing' : '')} ref={ref} style={style}>
+    <div className={cls + (full ? ' playing' : '')} ref={ref} style={style} onClick={() => src && !full && setFull(true)}>
       {badge && <span className="clip-badge">{badge}</span>}
       {src ? (
         <>
           {poster && <img className="fill clip-poster" src={poster} alt="" loading="lazy" decoding="async" />}
-          {playing ? (
+          {showVideo && (
             <video
+              key={videoSrc}
               ref={videoRef}
-              className="fill"
-              src={src}
-              poster={poster || undefined}
+              className={'fill' + (ready ? ' ready' : '')}
+              src={videoSrc}
+              poster={poster || BLANK_POSTER}
               preload="auto"
-              controls
+              autoPlay={!full}
+              muted={!full}
+              controls={full}
               loop
               playsInline
-              onPause={(e) => { if (e.currentTarget === playingVideo) playingVideo = null; }}
-              onPlay={(e) => {
-                if (playingVideo && playingVideo !== e.currentTarget) playingVideo.pause();
-                playingVideo = e.currentTarget;
-              }}
+              onLoadedData={() => setReady(true)}
+              onCanPlay={() => setReady(true)}
             />
-          ) : (
-            <button type="button" className="clip-play" aria-label="영상 재생" onClick={() => setPlaying(true)}>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" /></svg>
-            </button>
           )}
         </>
       ) : (
@@ -105,11 +125,12 @@ function Clip({ src, badge, style }) {
 
 const LANDSCAPE = 16 / 9;
 
-/* Width/height of each travel clip, read from its poster: the posters keep
-   the footage's proportions, so the layout knows each orientation without
-   fetching any video. Clips without a poster are laid out as landscape,
-   which is what travel footage almost always is. Kept across renders so
-   switching region tabs doesn't measure the same image again. */
+/* Width/height of each travel clip, so footage can be uploaded in either
+   orientation without tagging it in the admin. Read from the poster when
+   there is one (posters keep the footage's proportions), else from the
+   clip's own metadata. Until known, a clip is laid out as landscape, which
+   is what travel footage almost always is. Kept across renders so switching
+   region tabs doesn't measure the same clip again. */
 const ratioCache = new Map();
 
 function useVideoRatios(srcs) {
@@ -118,23 +139,38 @@ function useVideoRatios(srcs) {
 
   useEffect(() => {
     let alive = true;
-    const images = srcs.map(posterFor).filter((poster) => poster && !ratioCache.has(poster)).map((poster) => {
-      const img = new Image();
-      img.onload = () => {
-        ratioCache.set(poster, img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : LANDSCAPE);
-        if (alive) setMeasured((n) => n + 1);
+    const done = (src, ratio) => {
+      ratioCache.set(src, ratio || LANDSCAPE);
+      if (alive) setMeasured((n) => n + 1);
+    };
+    const probes = srcs.filter((src) => src && !ratioCache.has(src)).map((src) => {
+      const { poster } = derivedFor(src);
+      if (poster) {
+        const img = new Image();
+        img.onload = () => done(src, img.naturalWidth / img.naturalHeight);
+        img.onerror = () => done(src, LANDSCAPE);
+        img.src = poster;
+        return img;
+      }
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.muted = true;
+      video.onloadedmetadata = () => {
+        done(src, video.videoWidth / video.videoHeight);
+        video.removeAttribute('src');
+        video.load();
       };
-      img.onerror = () => ratioCache.set(poster, LANDSCAPE);
-      img.src = poster;
-      return img;
+      video.onerror = () => done(src, LANDSCAPE);
+      video.src = src;
+      return video;
     });
     return () => {
       alive = false;
-      images.forEach((img) => { img.onload = img.onerror = null; });
+      probes.forEach((el) => { el.onload = el.onloadedmetadata = el.onerror = null; });
     };
   }, [key]);
 
-  return srcs.map((src) => ratioCache.get(posterFor(src)) ?? LANDSCAPE);
+  return srcs.map((src) => ratioCache.get(src) ?? LANDSCAPE);
 }
 
 /* Rows of equal height, filled left to right in admin order. Each card's
