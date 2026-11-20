@@ -266,25 +266,35 @@ function TravelRows({ items }) {
   if (!items.length) {
     return (
       <div className="travel-rows">
-        <div className="travel-row"><Clip style={{ '--r': LANDSCAPE }} /></div>
+        <Clip style={{ '--r': LANDSCAPE, '--share': 1, '--gaps': 0 }} />
       </div>
     );
   }
 
-  const rows = packRows(ratios, target);
+  /* Every card sits directly in one wrapping container and is sized to the
+     row it belongs to, instead of being nested in a row element. Regrouping
+     (a size becoming known, the screen rotating) then only restyles the
+     cards; nested rows would move them under new parents, which rebuilds
+     them and restarts their videos from scratch. */
+  const placement = [];
+  packRows(ratios, target).forEach((row, r, rows) => {
+    // A short last row is sized as if full, so it keeps the full-row height
+    // instead of stretching one portrait clip across the whole feed.
+    const width = r === rows.length - 1 ? Math.max(row.sum, target) : row.sum;
+    row.items.forEach((i) => {
+      placement[i] = { share: ratios[i] / width, gaps: row.items.length - 1 };
+    });
+  });
+
   return (
     <div className="travel-rows">
-      {rows.map((row, r) => (
-        <div className="travel-row" key={r}>
-          {row.items.map((i) => (
-            <Clip key={items[i].src + i} src={items[i].src} badge={items[i].badge} style={{ '--r': ratios[i] }} />
-          ))}
-          {/* A short last row keeps the full-row height instead of
-              stretching one portrait clip across the whole feed. */}
-          {r === rows.length - 1 && row.sum < target && (
-            <div className="travel-row-filler" style={{ '--r': target - row.sum }} />
-          )}
-        </div>
+      {items.map((item, i) => (
+        <Clip
+          key={item.src + i}
+          src={item.src}
+          badge={item.badge}
+          style={{ '--r': ratios[i], '--share': placement[i].share, '--gaps': placement[i].gaps }}
+        />
       ))}
     </div>
   );

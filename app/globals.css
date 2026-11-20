@@ -87,13 +87,15 @@ p.lead{ font-size:21px; line-height:1.7; letter-spacing:-.01em; color:var(--mute
    from the viewport HEIGHT made two of them wider than the feed on anything
    tall and narrow — every tablet size overflowed by 29-418px and the right
    column was clipped away by the feed's overflow-x:hidden. */
-.travel-rows{ grid-column:1/-1; align-self:start; display:flex; flex-direction:column; gap:var(--sp-md); min-width:0; }
-/* --r is the clip's width/height. Growing by it from a zero basis makes
-   widths proportional to aspect ratio, so every card in the row shares one
-   height whether the footage is landscape or portrait. */
-.travel-row{ display:flex; gap:var(--sp-md); min-width:0; }
-.travel-row > .clip{ flex:var(--r) 1 0px; min-width:0; aspect-ratio:var(--r); }
-.travel-row-filler{ flex:var(--r) 1 0px; }
+.travel-rows{ grid-column:1/-1; align-self:start; display:flex; flex-wrap:wrap; gap:var(--sp-md); min-width:0; }
+/* --share is the card's fraction of its row's width (its aspect ratio over
+   the row's total), --gaps the gaps in that row, --r its width/height. Cards
+   in a row therefore share one height whatever their orientation. The
+   0.5px keeps rounding from pushing the last card of a row onto the next. */
+.travel-rows > .clip{
+  flex:0 0 auto; min-width:0; aspect-ratio:var(--r);
+  width:calc((100% - var(--gaps) * var(--sp-md)) * var(--share) - 0.5px);
+}
 
 .clip.empty{ background:transparent; border:1px dashed var(--line); }
 .clip.empty video{ display:none; }
