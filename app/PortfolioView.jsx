@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 
 import { pathForView, viewForSlug } from '@/lib/slugs';
 import mediaDerived from '@/lib/media-derived.json';
@@ -30,13 +30,20 @@ function baseName(path) {
 }
 const derivedByBase = new Map(Object.entries(mediaDerived).map(([path, media]) => [baseName(path), media]));
 
-function derivedFor(src) {
+/* Posters the admin captured at upload time, saved in the site config as
+   { clipUrl: posterUrl }. They cover clips that have no derived copies yet,
+   so a card shows a frame of its own video while loading instead of the
+   bare card colour. */
+const PostersContext = createContext({});
+
+function derivedFor(src, posters) {
   if (!src) return {};
   let path = src;
   try {
     path = decodeURIComponent(new URL(src, 'https://x.invalid').pathname);
   } catch {}
-  return mediaDerived[path] || derivedByBase.get(baseName(path)) || {};
+  const derived = mediaDerived[path] || derivedByBase.get(baseName(path)) || {};
+  return { ...derived, poster: derived.poster || posters?.[src] || null };
 }
 
 // The one card playing its original right now, so starting another stops it.
@@ -53,7 +60,7 @@ function Clip({ src, badge, style }) {
   const [inView, setInView] = useState(false);
   const [full, setFull] = useState(false);
   const [ready, setReady] = useState(false);
-  const { poster, preview } = derivedFor(src);
+  const { poster, preview } = derivedFor(src, useContext(PostersContext));
 
   useEffect(() => {
     setFull(false);
@@ -134,6 +141,7 @@ const LANDSCAPE = 16 / 9;
 const ratioCache = new Map();
 
 function useVideoRatios(srcs) {
+  const posters = useContext(PostersContext);
   const [, setMeasured] = useState(0);
   const key = srcs.join('\n');
 
@@ -144,7 +152,7 @@ function useVideoRatios(srcs) {
       if (alive) setMeasured((n) => n + 1);
     };
     const probes = srcs.filter((src) => src && !ratioCache.has(src)).map((src) => {
-      const { poster } = derivedFor(src);
+      const { poster } = derivedFor(src, posters);
       if (poster) {
         const img = new Image();
         img.onload = () => done(src, img.naturalWidth / img.naturalHeight);
@@ -531,7 +539,9 @@ export default function PortfolioView({ config, initialView = 'home' }) {
               <BrandMarquee categoryId={activeCategory.id} />
             </div>
 
-            <CategoryFeed cat={activeCategory} key={activeCategory.id} />
+            <PostersContext.Provider value={config.posters || {}}>
+              <CategoryFeed cat={activeCategory} key={activeCategory.id} />
+            </PostersContext.Provider>
           </div>
         ) : (
           <div className="home-hero" key="home">

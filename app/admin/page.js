@@ -12,6 +12,47 @@ function storageName(fileName) {
   return `${base || 'clip'}${ext}`;
 }
 
+/* A frame of the video, taken from the file on this computer before it is
+   uploaded, so the site can show it while the clip loads instead of a grey
+   card. Scaled to 480px on the long side as JPEG. Resolves null when the
+   browser can't decode the file (e.g. some HEVC on Windows); the clip still
+   uploads, it just has no poster. */
+function capturePoster(file) {
+  if (!file.type.startsWith('video/')) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const video = document.createElement('video');
+    let settled = false;
+    const finish = (blob) => {
+      if (settled) return;
+      settled = true;
+      URL.revokeObjectURL(url);
+      video.removeAttribute('src');
+      video.load();
+      resolve(blob);
+    };
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = 'auto';
+    video.onloadedmetadata = () => {
+      video.currentTime = Math.min(1, (video.duration || 0) / 3);
+    };
+    video.onseeked = () => {
+      const { videoWidth: w, videoHeight: h } = video;
+      if (!w || !h) return finish(null);
+      const scale = Math.min(1, 480 / Math.max(w, h));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(w * scale);
+      canvas.height = Math.round(h * scale);
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => finish(blob), 'image/jpeg', 0.82);
+    };
+    video.onerror = () => finish(null);
+    setTimeout(() => finish(null), 20000);
+    video.src = url;
+  });
+}
+
 export default function AdminPage() {
   const [config, setConfig] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
@@ -360,9 +401,11 @@ export default function AdminPage() {
     setUploadingCount(files.length);
     setUploadFailures([]);
     const uploaded = [];
+    const posters = {};
     const failures = [];
     for (const file of files) {
       try {
+        const posterBlob = await capturePoster(file);
         const blob = await upload(`media/${selectedId}/${Date.now()}-${storageName(file.name)}`, file, {
           access: 'public',
           handleUploadUrl: '/api/admin/upload',
@@ -371,6 +414,19 @@ export default function AdminPage() {
           multipart: true,
         });
         uploaded.push(blob.url);
+        if (posterBlob) {
+          try {
+            const poster = await upload(`media/${selectedId}/poster-${Date.now()}.jpg`, posterBlob, {
+              access: 'public',
+              handleUploadUrl: '/api/admin/upload',
+              contentType: 'image/jpeg',
+            });
+            posters[blob.url] = poster.url;
+          } catch (err) {
+            // The clip is up; a missing poster only means a plain card while it loads.
+            console.error('poster upload failed', file.name, err);
+          }
+        }
       } catch (err) {
         console.error('upload failed', file.name, err);
         const message = err?.message || String(err);
@@ -387,6 +443,9 @@ export default function AdminPage() {
     // upload with a recurring failure otherwise means clicking through dozens.
     setUploadFailures(failures);
     updateClips([...clips, ...uploaded]);
+    if (Object.keys(posters).length) {
+      setConfig((prev) => ({ ...prev, posters: { ...(prev.posters || {}), ...posters } }));
+    }
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
