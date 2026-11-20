@@ -50,25 +50,37 @@ function derivedFor(src, posters) {
 let playingVideo = null;
 
 /* On screen, a card autoplays muted: its preview when one exists, else the
-   original as before. Off screen the <video> is removed so nothing keeps
-   downloading. Tapping a card swaps in the full original with sound and
-   controls; only one original plays at a time. */
+   original. The <video> is created the first time the card comes on screen
+   and then kept: off screen it is only paused, and back on screen it
+   carries on from the same spot with what it already downloaded, instead
+   of being rebuilt and fetched again from the start. Tapping a card swaps
+   in the full original with sound and controls; starting another original
+   pauses the previous one where it is. */
 function Clip({ src, badge, style }) {
   const cls = 'clip' + (src ? '' : ' empty');
   const ref = useRef(null);
   const videoRef = useRef(null);
   const [inView, setInView] = useState(false);
+  const [started, setStarted] = useState(false);
   const [full, setFull] = useState(false);
   const [ready, setReady] = useState(false);
+  // Whether the card should be playing when on screen. Always for the muted
+  // autoplay; for the tapped original, whatever the viewer last chose.
+  const wantsPlay = useRef(true);
+  // Set while this card pauses itself, so that pause isn't read as the
+  // viewer's choice.
+  const selfPause = useRef(false);
   const { poster, preview } = derivedFor(src, useContext(PostersContext));
+  const videoSrc = full ? src : preview || src;
 
   useEffect(() => {
     setFull(false);
+    setStarted(false);
     setInView(false);
     if (!src || !ref.current) return;
     const observer = new IntersectionObserver(([entry]) => {
       setInView(entry.isIntersecting);
-      if (!entry.isIntersecting) setFull(false);
+      if (entry.isIntersecting) setStarted(true);
     }, { rootMargin: '200px' });
     observer.observe(ref.current);
     return () => observer.disconnect();
@@ -76,28 +88,57 @@ function Clip({ src, badge, style }) {
 
   useEffect(() => {
     setReady(false);
+    wantsPlay.current = true;
+  }, [videoSrc]);
+
+  useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
     if (video.readyState >= 2) setReady(true);
-    if (!full) return;
-    if (playingVideo && playingVideo !== video) playingVideo.dispatchEvent(new Event('siriai:stop'));
-    playingVideo = video;
-    // A tap usually allows sound, but some mobile browsers only start a
-    // freshly rendered video muted; the controls can unmute it.
-    video.play().catch(() => {
-      video.muted = true;
-      return video.play();
-    }).catch(() => {});
-    const stop = () => setFull(false);
+    if (inView && wantsPlay.current) {
+      // A tap usually allows sound, but some mobile browsers only start a
+      // freshly rendered video muted; the controls can unmute it.
+      video.play().catch(() => {
+        if (!full) return;
+        video.muted = true;
+        return video.play();
+      }).catch(() => {});
+    } else if (!inView && !video.paused) {
+      selfPause.current = true;
+      video.pause();
+    }
+  }, [inView, started, full, videoSrc]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!full || !video) return;
+    // Another original starting pauses this one in place.
+    const stop = () => {
+      wantsPlay.current = false;
+      selfPause.current = true;
+      video.pause();
+    };
     video.addEventListener('siriai:stop', stop);
     return () => {
       video.removeEventListener('siriai:stop', stop);
       if (playingVideo === video) playingVideo = null;
     };
-  }, [full, inView]);
+  }, [full, videoSrc]);
 
-  const showVideo = src && (full || inView);
-  const videoSrc = full ? src : preview || src;
+  function onPlay(e) {
+    if (!full) return;
+    wantsPlay.current = true;
+    if (playingVideo && playingVideo !== e.currentTarget) playingVideo.dispatchEvent(new Event('siriai:stop'));
+    playingVideo = e.currentTarget;
+  }
+
+  function onPause() {
+    if (selfPause.current) {
+      selfPause.current = false;
+      return;
+    }
+    if (full) wantsPlay.current = false;
+  }
 
   return (
     <div className={cls + (full ? ' playing' : '')} ref={ref} style={style} onClick={() => src && !full && setFull(true)}>
@@ -105,7 +146,7 @@ function Clip({ src, badge, style }) {
       {src ? (
         <>
           {poster && <img className="fill clip-poster" src={poster} alt="" loading="lazy" decoding="async" />}
-          {showVideo && (
+          {(started || full) && (
             <video
               key={videoSrc}
               ref={videoRef}
@@ -113,13 +154,14 @@ function Clip({ src, badge, style }) {
               src={videoSrc}
               poster={poster || BLANK_POSTER}
               preload="auto"
-              autoPlay={!full}
               muted={!full}
               controls={full}
               loop
               playsInline
               onLoadedData={() => setReady(true)}
               onCanPlay={() => setReady(true)}
+              onPlay={onPlay}
+              onPause={onPause}
             />
           )}
         </>
